@@ -110,7 +110,8 @@ input { font: inherit; }
 .empty-state .e-title { color: var(--text); font-weight: 600; margin-bottom: 4px; }
 
 /* ============ FAB + TABBAR ============ */
-.fab { position: fixed; bottom: calc(80px + env(safe-area-inset-bottom)); right: max(16px, calc(50vw - var(--container)/2 + 16px)); width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: var(--accent-text); border: none; font-size: 26px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 20; }
+.fab { position: fixed; bottom: calc(80px + env(safe-area-inset-bottom)); right: max(16px, calc(50vw - var(--container)/2 + 16px)); width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: var(--accent-text); border: none; padding: 0; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 20; }
+.fab svg { display: block; }
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; max-width: var(--container); margin-inline: auto; height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-around; z-index: 10; }
 .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; padding: 8px 0; color: var(--muted); background: none; border: none; font-size: 11px; min-height: 48px; }
 .tab.active { color: var(--accent); }
@@ -2620,7 +2621,13 @@ var App = (function () {
       + '<button class="tab ' + (ui.tab === 'history' ? 'active' : '') + '" data-tab="history"><div class="icon">≣</div>' + I18n.t('tab_history') + '</button>'
       + '</nav>';
   }
-  function _renderFab() { return '<button class="fab" data-action="add-spend" aria-label="Add spend">+</button>'; }
+  function _renderFab() {
+    return '<button class="fab" data-action="add-spend" aria-label="Add spend">'
+      + '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">'
+        + '<path d="M12 5 L12 19 M5 12 L19 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>'
+      + '</svg>'
+      + '</button>';
+  }
 
   function _pulseHero() {
     var el = document.getElementById('hero-amount');

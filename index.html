@@ -120,7 +120,7 @@ input { font: inherit; }
 /* ============ SHEET / DIALOG ============ */
 .sheet-wrap { position: fixed; inset: 0; z-index: 100; }
 .scrim { position: absolute; inset: 0; background: var(--scrim); }
-.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-top-left-radius: 22px; border-top-right-radius: 22px; padding: 0 18px 22px; max-height: 92vh; overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,0.35); max-width: var(--container); margin-inline: auto; overscroll-behavior: contain; padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-top-left-radius: 22px; border-top-right-radius: 22px; padding: 0 18px 22px; max-height: calc(100vh - env(safe-area-inset-top) - 24px); overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,0.35); max-width: var(--container); margin-inline: auto; overscroll-behavior: contain; padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
 .sheet-chrome { position: sticky; top: 0; padding: 8px 0 6px; background: var(--surface); z-index: 5; margin-inline: -18px; padding-inline: 14px; }
 .sheet-handle { width: 36px; height: 4px; background: var(--surface-3); border-radius: 2px; margin: 0 auto 6px; }
 .sheet-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; }

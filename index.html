@@ -1,0 +1,2695 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spending Tracker</title>
+<meta name="theme-color" content="#262b33" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3eee0" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spending">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- iOS home-screen icon. PNG is required — SVG renders as white square on iOS Safari. -->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
+<!-- SVG kept as a graceful fallback for browsers that prefer it -->
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<script>
+  // FOUC prevention: apply cached theme before first paint
+  try {
+    var t = localStorage.getItem('spending-tracker:theme-cache') || 'system';
+    if (t === 'system') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+</script>
+<!-- STYLES:INLINED -->
+<style>
+:root {
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
+  --green: #2ecc71;
+  --amber: #f5a623;
+  --red: #e74c3c;
+  --container: 440px;
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-2: 0 6px 24px rgba(0,0,0,0.18);
+}
+html[data-theme="dark"] {
+  --bg: #1a1d23; --surface: #262b33; --surface-2: #323843; --surface-3: #3c4250;
+  --text: #f1f3f7; --muted: #a3acbb; --border: #3f4654;
+  --accent: #5ab19a; --accent-soft: rgba(90,177,154,0.16); --accent-text: #ffffff;
+  --hero-glow: rgba(90,177,154,0.10);
+  --scrim: rgba(0,0,0,0.55);
+  --input-bg: #2d333d;
+}
+html[data-theme="light"] {
+  --bg: #eef0f4; --surface: #ffffff; --surface-2: #f5f7fa; --surface-3: #eef1f5;
+  --text: #111827; --muted: #6b7280; --border: #e5e7eb;
+  --accent: #3b82f6; --accent-soft: rgba(59,130,246,0.12); --accent-text: #ffffff;
+  --hero-glow: rgba(59,130,246,0.08);
+  --scrim: rgba(15,23,42,0.45);
+  --input-bg: #ffffff;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-align: start;
+}
+#app { max-width: var(--container); margin-inline: auto; min-height: 100vh; position: relative; }
+button { font: inherit; cursor: pointer; }
+input { font: inherit; }
+*:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ============ APP SHELL ============ */
+.app-header { padding: 16px 18px 8px; display: flex; align-items: center; justify-content: space-between; }
+.app-title { font-size: 15px; font-weight: 600; }
+.app-title small { font-weight: 400; color: var(--muted); margin-inline-start: 6px; }
+.icon-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); color: var(--text); display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+.app-body { padding: 8px 18px 110px; }
+
+/* ============ HERO ============ */
+.hero { text-align: center; padding: 28px 12px 22px; margin-block: 4px 12px; background: radial-gradient(ellipse at center top, var(--hero-glow), transparent 70%); border-radius: var(--radius); }
+.hero-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.hero-amount { font-size: 60px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
+.hero-amount .currency { font-size: 22px; font-weight: 500; color: var(--muted); margin-inline-end: 4px; vertical-align: 4px; }
+.hero-amount.over { color: var(--red); }
+@keyframes hero-pulse { 0%{transform:scale(1)} 30%{transform:scale(1.04)} 100%{transform:scale(1)} }
+.hero-amount.pulse { animation: hero-pulse 0.35s ease-out; }
+.hero-sub { color: var(--muted); font-size: 14px; margin-top: 10px; }
+.chip-row { display: flex; gap: 6px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--text); font-size: 12px; border: 1px solid var(--border); }
+.chip.good { background: rgba(46,204,113,0.14); color: var(--green); border-color: transparent; }
+.chip.warn { background: rgba(245,166,35,0.15); color: var(--amber); border-color: transparent; }
+.chip.bad { background: rgba(231,76,60,0.18); color: var(--red); border-color: transparent; }
+
+/* ============ HISTORY / TXN LIST ============ */
+.section-h { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 18px 4px 8px; display: flex; justify-content: space-between; align-items: baseline; }
+.section-h .right { font-size: 12px; color: var(--muted); text-transform: none; letter-spacing: 0; }
+.txn-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.txn { display: grid; grid-template-columns: 36px 1fr auto 18px; gap: 10px; align-items: center; padding: 11px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; min-height: 44px; }
+.txn:hover { background: var(--surface-2); }
+.txn .cat-dot { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+.txn .main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.txn .top-line { font-size: 14px; font-weight: 600; }
+.txn .bot-line { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.txn .amount { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 15px; }
+.txn .amount.refund { color: var(--green); }
+.txn .chev { color: var(--muted); font-size: 16px; }
+
+/* ============ EMPTY STATE ============ */
+.empty-state { text-align: center; padding: 28px 18px; color: var(--muted); background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius-sm); }
+.empty-state .e-emoji { font-size: 28px; margin-bottom: 8px; }
+.empty-state .e-title { color: var(--text); font-weight: 600; margin-bottom: 4px; }
+
+/* ============ FAB + TABBAR ============ */
+.fab { position: fixed; bottom: calc(80px + env(safe-area-inset-bottom)); right: max(16px, calc(50vw - var(--container)/2 + 16px)); width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: var(--accent-text); border: none; font-size: 26px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 20; }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; max-width: var(--container); margin-inline: auto; height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-around; z-index: 10; }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; padding: 8px 0; color: var(--muted); background: none; border: none; font-size: 11px; min-height: 48px; }
+.tab.active { color: var(--accent); }
+.tab .icon { font-size: 20px; line-height: 1; }
+
+/* ============ SHEET / DIALOG ============ */
+.sheet-wrap { position: fixed; inset: 0; z-index: 100; }
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-top-left-radius: 22px; border-top-right-radius: 22px; padding: 0 18px 22px; max-height: 92vh; overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,0.35); max-width: var(--container); margin-inline: auto; overscroll-behavior: contain; padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+.sheet-chrome { position: sticky; top: 0; display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; padding: 12px 0 8px; background: var(--surface); z-index: 5; margin-inline: -18px; padding-inline: 18px; }
+.sheet-handle { width: 38px; height: 4px; background: var(--surface-3); border-radius: 2px; justify-self: center; }
+.sheet-close { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--surface-2); color: var(--text); font-size: 22px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.sheet-close:hover { background: var(--surface-3); }
+.sheet-body { padding-top: 8px; }
+.sheet h2 { font-size: 17px; margin: 0 0 14px; }
+.sheet p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+@keyframes sheet-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet { animation: sheet-slide-up 0.22s ease-out; }
+.dialog-wrap { position: fixed; inset: 0; z-index: 150; }
+.dialog { position: absolute; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 20px; box-shadow: var(--shadow-2); max-width: var(--container); margin-inline: auto; }
+.dialog h3 { font-size: 17px; margin: 0 0 6px; }
+.dialog p { font-size: 14px; color: var(--muted); margin: 0 0 16px; line-height: 1.5; }
+.dialog .actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ============ FORM CONTROLS ============ */
+.sheet-section { margin-bottom: 16px; }
+.sheet-section label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+.input { width: 100%; background: var(--input-bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font: inherit; font-size: 15px; min-height: 48px; }
+.input.error { border-color: var(--red); }
+.input-lg { font-size: 32px; font-weight: 700; text-align: center; letter-spacing: -0.01em; padding: 14px; }
+.input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.qa-row { display: flex; gap: 8px; margin-top: 10px; }
+.qa { flex: 1; padding: 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-weight: 600; font-size: 14px; min-height: 44px; }
+.cat-chip-row { display: flex; gap: 6px; overflow-x: auto; padding-block: 4px; -webkit-overflow-scrolling: touch; }
+.cat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-pill); background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--text); min-height: 40px; }
+.cat-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+.cat-chip.selected { background: var(--accent-soft); border-color: var(--accent); }
+.date-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.date-chip { padding: 8px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; font-weight: 500; color: var(--text); min-height: 40px; }
+.date-chip.selected { background: var(--accent-soft); border-color: var(--accent); }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; font-size: 14px; gap: 12px; }
+.switch { width: 40px; height: 22px; background: var(--surface-3); border-radius: 12px; position: relative; border: none; padding: 0; flex-shrink: 0; }
+.switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: left 0.15s; }
+.switch.on { background: var(--accent); }
+.switch.on::after { left: 20px; }
+.sheet-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 6px; border-top: 1px solid var(--border); margin-top: 12px; position: sticky; bottom: 0; background: var(--surface); padding-bottom: 4px; }
+.full-row { grid-column: 1 / -1; }
+
+/* ============ BUTTONS ============ */
+.btn { padding: 13px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; font-weight: 600; font-size: 14px; min-height: 48px; }
+.btn-primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn-ghost { background: transparent; }
+.btn-danger { background: rgba(231,76,60,0.18); color: var(--red); border-color: transparent; }
+.btn-danger-solid { background: var(--red); color: #fff; border-color: var(--red); }
+.btn-block { width: 100%; }
+
+/* ============ TOAST ============ */
+#toast-root { position: fixed; left: 0; right: 0; bottom: calc(150px + env(safe-area-inset-bottom)); z-index: 200; pointer-events: none; }
+.toast { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; box-shadow: var(--shadow-2); pointer-events: auto; max-width: var(--container); margin-inline: auto; }
+.toast.success { border-left: 4px solid var(--green); }
+.toast.error { border-left: 4px solid var(--red); }
+.toast-action { background: none; border: none; color: var(--accent); font: inherit; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ============ SETTINGS / SUMMARY ============ */
+.settings-section { margin-bottom: 20px; }
+.settings-section h3 { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; font-size: 14px; gap: 12px; }
+.settings-row .value { color: var(--muted); font-size: 13px; }
+.settings-row button { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; color: var(--text); font-size: 12px; }
+.seg { display: flex; gap: 4px; background: var(--surface-3); padding: 3px; border-radius: 10px; }
+.seg button { padding: 6px 12px; border: none; background: transparent; color: var(--muted); border-radius: 8px; font-size: 12px; font-weight: 600; }
+.seg button.active { background: var(--surface); color: var(--text); }
+.category-row { display: grid; grid-template-columns: 28px 1fr auto auto; gap: 10px; align-items: center; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; font-size: 14px; }
+.category-row .grab { color: var(--muted); }
+.category-row .right { color: var(--muted); font-size: 12px; }
+.category-row .del-cat { background: none; border: none; color: var(--muted); font-size: 16px; padding: 4px 8px; }
+.category-row .del-cat:hover { color: var(--red); }
+
+.summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin: 12px 0; }
+.summary-card .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; gap: 8px; }
+.summary-card .label { font-size: 12px; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
+.summary-card .big { font-size: 28px; font-weight: 700; }
+.summary-card .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; gap: 8px; }
+.summary-card .stat-row:last-child { border-bottom: none; }
+.summary-card .stat-row .lbl { color: var(--muted); }
+.cat-bar-row { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; font-size: 13px; }
+.cat-bar-row .bar { height: 6px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+.cat-bar-row .bar > div { height: 100%; }
+
+/* ============ BANNER ============ */
+.banner { background: rgba(245,166,35,0.18); border: 1px solid var(--amber); color: var(--text); padding: 10px 14px; border-radius: 10px; margin: 8px 0; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.banner button { background: var(--amber); color: #000; border: none; border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 12px; }
+
+/* ============ LANDING PAGE ============ */
+.landing { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 22px; }
+.landing-inner { width: 100%; max-width: 400px; text-align: start; }
+.landing-mark { margin-bottom: 22px; }
+.landing-mark svg { display: block; }
+.landing-h1 { font-size: 34px; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 12px; }
+.landing-sub { font-size: 15px; line-height: 1.55; color: var(--muted); margin: 0 0 24px; }
+.landing-bullets { list-style: none; padding: 0; margin: 0 0 28px; display: flex; flex-direction: column; gap: 16px; }
+.landing-bullets li { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.5; color: var(--text); }
+.landing-bullets .emoji { font-size: 22px; line-height: 1; margin-top: 2px; }
+.landing-bullets b { color: var(--text); }
+.landing-cta { width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border-radius: 12px; margin-bottom: 14px; }
+.landing-foot { text-align: center; font-size: 12px; color: var(--muted); margin: 0; }
+
+/* ============ DESKTOP PHONE FRAME ============ */
+@media (min-width: 900px) {
+  body {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(90,177,154,0.06), transparent 60%),
+      linear-gradient(180deg, #14171c 0%, #0a0c10 100%);
+    min-height: 100vh;
+    padding: 32px 16px;
+  }
+  html[data-theme="light"] body {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.06), transparent 60%),
+      linear-gradient(180deg, #d6dae3 0%, #b9bfcc 100%);
+  }
+  #app {
+    max-width: 440px;
+    height: calc(100vh - 64px);
+    background: var(--bg);
+    border: 10px solid #0a0c0f;
+    border-radius: 42px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    margin: 0 auto;
+    box-shadow:
+      0 30px 80px rgba(0,0,0,0.5),
+      0 0 0 1px rgba(255,255,255,0.04) inset;
+  }
+  html[data-theme="light"] #app { border-color: #1a1d23; }
+  /* Fake notch */
+  #app::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 22px;
+    background: #0a0c0f;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    z-index: 60;
+  }
+  html[data-theme="light"] #app::before { background: #1a1d23; }
+  #app .app-header { padding-top: 34px; }
+  #app .landing { padding-top: 52px; }
+  /* Re-anchor pinned UI to the phone frame */
+  #app .tabbar { position: absolute; left: 0; right: 0; bottom: 0; max-width: none; margin-inline: 0; }
+  #app .fab { position: absolute; right: 16px; bottom: 84px; left: auto; }
+  /* Sheets/toasts/dialogs: constrain to phone column */
+  .sheet-wrap, .dialog-wrap { max-width: 440px; margin-inline: auto; left: 50%; transform: translateX(-50%); right: auto; width: 100%; }
+  #toast-root { left: 50%; transform: translateX(-50%); right: auto; width: 440px; }
+}
+</style>
+<!-- STYLES:END -->
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<!-- MODULES:INLINED -->
+<script>
+var Format = (function () {
+  'use strict';
+
+  function fmtMoney(amount, currency, locale) {
+    locale = locale || 'en-US';
+    currency = currency || 'AED';
+    var n = Number(amount) || 0;
+    var abs = Math.abs(n);
+    var s = abs.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (n < 0 ? '−' : '') + s + ' ' + currency;
+  }
+
+  function _parseISOToUTCParts(iso) {
+    return {
+      y: +iso.slice(0, 4), m: +iso.slice(5, 7), d: +iso.slice(8, 10),
+      H: iso.length > 10 ? +iso.slice(11, 13) : 0,
+      M: iso.length > 10 ? +iso.slice(14, 16) : 0
+    };
+  }
+
+  // Zeller's congruence for weekday — pure arithmetic, no Date
+  function _weekdayIndex(y, m, d) {
+    if (m < 3) { m += 12; y -= 1; }
+    var k = y % 100;
+    var j = Math.floor(y / 100);
+    var h = (d + Math.floor(13 * (m + 1) / 5) + k + Math.floor(k / 4) + Math.floor(j / 4) - 2 * j + 700) % 7;
+    return (h + 6) % 7;  // 0=Sun..6=Sat
+  }
+
+  var WEEK = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var MON  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function fmtDateLong(iso) {
+    if (!iso) return '';
+    var p = _parseISOToUTCParts(iso);
+    return WEEK[_weekdayIndex(p.y, p.m, p.d)] + ' ' + p.d + ' ' + MON[p.m - 1];
+  }
+
+  function fmtDateShort(iso) {
+    if (!iso) return '';
+    var p = _parseISOToUTCParts(iso);
+    return p.d + ' ' + MON[p.m - 1];
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return '';
+    var p = _parseISOToUTCParts(iso);
+    return String(p.H).padStart(2, '0') + ':' + String(p.M).padStart(2, '0');
+  }
+
+  function escapeHTML(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch];
+    });
+  }
+
+  function parseAmount(raw) {
+    if (raw == null) return NaN;
+    var s = String(raw).trim();
+    s = s.replace(/[^\d.,\-]/g, '');
+    if (s === '' || s === '-') return NaN;
+    var lastDot = s.lastIndexOf('.');
+    var lastComma = s.lastIndexOf(',');
+    if (lastDot > -1 || lastComma > -1) {
+      var dec = lastDot > lastComma ? lastDot : lastComma;
+      var intPart = s.slice(0, dec).replace(/[.,]/g, '');
+      var fracPart = s.slice(dec + 1).replace(/[.,]/g, '');
+      s = intPart + '.' + fracPart;
+    }
+    var n = Number(s);
+    return isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+  }
+
+  return {
+    fmtMoney: fmtMoney,
+    fmtDateLong: fmtDateLong, fmtDateShort: fmtDateShort, fmtTime: fmtTime,
+    escapeHTML: escapeHTML,
+    parseAmount: parseAmount
+  };
+})();
+</script>
+<script>
+var I18n = (function () {
+  'use strict';
+
+  var STRINGS = {
+    en: {
+      app_title: 'Spending',
+      hero_left: 'AED left today',
+      hero_over: 'AED over today',
+      spent_today: 'Spent today',
+      pace_on_track: 'On track',
+      pace_slightly_fast: 'Slightly fast',
+      pace_fast: 'Spending fast',
+      pace_unknown: 'Keep logging to see your pace',
+      days_left: '{n} days left',
+      day_left: '1 day left',
+      cycle_label: 'Cycle: {start} → {end}',
+      today_label: 'Today',
+      yesterday_label: 'Yesterday',
+      tab_home: 'Home', tab_history: 'History',
+      add_spend: 'Add spend', edit_spend: 'Edit spend',
+      amount: 'Amount', amount_aed: 'Amount (AED)',
+      category: 'Category', when: 'When',
+      today: 'Today', yesterday: 'Yesterday', pick_date: 'Pick date',
+      note: 'Note', note_placeholder: 'e.g. Lunch with Sam',
+      add_note: '+ Add note',
+      refund: 'Refund (subtracts from spent)',
+      exclude_from_pace: 'Exclude from pace',
+      save: 'Save', save_and_add: 'Save & add another', save_changes: 'Save changes',
+      cancel: 'Cancel', delete: 'Delete', ok: 'OK',
+      onboarding_title: 'Welcome to Spending Tracker',
+      onboarding_intro: 'Two quick things and you\'re set up.',
+      onboarding_budget: 'Cycle budget (AED)',
+      onboarding_salary_day: 'Salary day',
+      onboarding_salary_help: 'Each cycle runs from this day to the day before next month\'s salary.',
+      onboarding_seed: 'Seed default categories',
+      onboarding_seed_help: 'Food · Transport · Bills · Fun · Other',
+      get_started: 'Get started',
+      load_sample: 'Load sample data',
+      cycle_ended_title: 'Cycle ended',
+      cycle_ended_sub: '{start} → {end}. Here\'s the summary before we roll forward.',
+      rollover_total_spent: 'Total spent',
+      rollover_under: 'Under budget',
+      rollover_over: 'Over budget',
+      rollover_biggest_cat: 'Biggest category',
+      rollover_biggest_day: 'Biggest day',
+      rollover_avg: 'Daily average',
+      rollover_same: 'Start next cycle · same budget ({amount})',
+      rollover_diff: 'Start with a different budget',
+      rollover_new_budget: 'New budget (AED)',
+      settings: 'Settings', cycle: 'Cycle', categories: 'Categories', display: 'Display', backup: 'Backup', danger_zone: 'Danger zone',
+      cycle_budget: 'Budget',
+      cycle_salary: 'Salary day',
+      cycle_current: 'Current cycle',
+      cycle_edit_budget: 'Edit budget',
+      cycle_edit_salary: 'Edit salary day',
+      theme_label: 'Theme',
+      theme_light: 'Light', theme_dark: 'Dark', theme_system: 'Auto',
+      currency: 'Currency', salary_day: 'Salary day',
+      export_json: 'Export JSON backup', import_json: 'Import backup', export_csv: 'Export CSV (for Excel)',
+      backup_tip: 'Tip: export a JSON backup once a week and save it to OneDrive. Your only safety net if the browser clears storage.',
+      reset_all: 'Reset all data',
+      reset_action: 'Reset',
+      add_category: '+ Add category',
+      cat_name_label: 'Category name',
+      cat_icon_label: 'Icon (emoji)',
+      cat_color_label: 'Color',
+      cat_count: '{n} spends',
+      reassign_title: 'Reassign spends',
+      reassign_help: 'This category has {n} spends. Pick a category to move them to before deleting.',
+      reassign_to: 'Move to',
+      confirm_delete_txn_title: 'Delete this spend?',
+      confirm_delete_txn_text: '{amount} · {cat}{notePart} — undoable for 10 seconds.',
+      confirm_replace_data_title: 'Replace all your data?',
+      confirm_replace_data_text: 'Current data will be auto-snapshotted. You can undo for 30 seconds.',
+      confirm_reset_title: 'Reset everything?',
+      confirm_reset_text: 'All transactions, categories, and cycles will be deleted. You can undo for 30 seconds.',
+      confirm_replace_action: 'Replace',
+      undo: 'Undo',
+      reload: 'Reload',
+      toast_saved: '{amount} logged to {cat} · {left} left today.',
+      toast_deleted: 'Spend deleted · {left} left today.',
+      toast_restored: 'Data restored.',
+      toast_restore_undone: 'Restore undone.',
+      toast_reset_done: 'All data reset.',
+      toast_save_failed: "Couldn't save — storage may be full or disabled.",
+      toast_invalid_backup: "That file doesn't look like a Spending Tracker backup.",
+      toast_update_available: 'A new version is available.',
+      banner_recovered: "Your data couldn't be read; we started fresh.",
+      banner_recovered_action: 'Restore from backup',
+      no_spends_today: 'No spends today yet — tap + to log one.',
+      empty_history: 'No past days yet.',
+      no_active_cycle: 'No active cycle.',
+      readonly_archived: 'Read-only · archived',
+      cycle_current_chip: 'Current',
+      by_category: 'By category',
+      highlights: 'Highlights',
+      avg_per_day: 'Average per day',
+      biggest_day_label: 'Biggest day',
+      biggest_single: 'Biggest single spend',
+      zero_spend_days: 'Zero-spend days',
+      version: 'Spending Tracker v2.0.0 · offline · device-bound'
+    }
+  };
+
+  var current = 'en';
+
+  function setLocale(loc) { if (STRINGS[loc]) current = loc; }
+  function t(key, vars) {
+    var s = (STRINGS[current] && STRINGS[current][key]) || (STRINGS.en && STRINGS.en[key]) || key;
+    if (vars) {
+      for (var v in vars) {
+        s = s.replace(new RegExp('\\{' + v + '\\}', 'g'), String(vars[v]));
+      }
+    }
+    return s;
+  }
+
+  return { STRINGS: STRINGS, t: t, setLocale: setLocale };
+})();
+</script>
+<script>
+var Seed = (function () {
+  'use strict';
+
+  var DEFAULT_CATEGORIES = [
+    { name: 'Food',      icon: '🍔', color: '#e67e22', order: 0 },
+    { name: 'Transport', icon: '🚗', color: '#3498db', order: 1 },
+    { name: 'Bills',     icon: '🧾', color: '#9b59b6', order: 2 },
+    { name: 'Fun',       icon: '🎉', color: '#e74c3c', order: 3 },
+    { name: 'Other',     icon: '•',       color: '#7f8c8d', order: 4 }
+  ];
+
+  function defaultCategories(nowISO, idGen) {
+    var map = {};
+    DEFAULT_CATEGORIES.forEach(function (c, i) {
+      var id = idGen('cat-' + i);
+      map[id] = {
+        id: id, name: c.name, icon: c.icon, color: c.color,
+        order: c.order, isArchived: false, createdAt: nowISO
+      };
+    });
+    return map;
+  }
+
+  function newCycle(startDate, endDate, startBudget, nowISO, idGen) {
+    var id = idGen('cycle');
+    return {
+      id: id, startDate: startDate, endDate: endDate, startBudget: startBudget,
+      archivedAt: null, createdAt: nowISO
+    };
+  }
+
+  return {
+    DEFAULT_CATEGORIES: DEFAULT_CATEGORIES,
+    defaultCategories: defaultCategories,
+    newCycle: newCycle
+  };
+})();
+</script>
+<script>
+var Validate = (function () {
+  'use strict';
+
+  var ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+  function validate(state) {
+    var errors = [];
+    if (!state || typeof state !== 'object') {
+      errors.push('state not an object');
+      return { ok: false, errors: errors };
+    }
+    if (state.schemaVersion !== 1) errors.push('schemaVersion must be 1');
+    if (!state.settings) errors.push('settings missing');
+    else {
+      if (typeof state.settings.salaryDay !== 'number' || state.settings.salaryDay < 1 || state.settings.salaryDay > 28)
+        errors.push('settings.salaryDay must be 1-28');
+      if (typeof state.settings.currency !== 'string') errors.push('settings.currency must be string');
+    }
+
+    var seenNames = {};
+    for (var cid in (state.categories || {})) {
+      var c = state.categories[cid];
+      if (!c.id || !c.name) { errors.push('category ' + cid + ' missing id/name'); continue; }
+      if (c.name.length > 32) errors.push('category ' + cid + ' name >32 chars');
+      var key = c.name.toLowerCase().trim();
+      if (seenNames[key]) errors.push('category name duplicated: ' + c.name);
+      seenNames[key] = true;
+    }
+
+    var cycleList = Object.values(state.cycles || {}).slice().sort(function (a, b) {
+      return a.startDate.localeCompare(b.startDate);
+    });
+    for (var i = 0; i < cycleList.length; i++) {
+      var cyc = cycleList[i];
+      if (!ISO_DATE.test(cyc.startDate) || !ISO_DATE.test(cyc.endDate))
+        errors.push('cycle ' + cyc.id + ' has malformed dates');
+      if (cyc.startDate > cyc.endDate) errors.push('cycle ' + cyc.id + ' start > end');
+      if (typeof cyc.startBudget !== 'number' || cyc.startBudget <= 0)
+        errors.push('cycle ' + cyc.id + ' startBudget must be positive number');
+      if (i > 0) {
+        var prev = cycleList[i - 1];
+        if (cyc.startDate <= prev.endDate) errors.push('cycle ' + cyc.id + ' overlaps prior');
+      }
+    }
+
+    for (var tid in (state.transactions || {})) {
+      var t = state.transactions[tid];
+      if (!ISO_DATE.test(t.date || '')) errors.push('txn ' + tid + ' has malformed date');
+      if (typeof t.amount !== 'number' || t.amount < 0) errors.push('txn ' + tid + ' amount must be >= 0');
+      if (!t.categoryId || !state.categories[t.categoryId]) errors.push('txn ' + tid + ' categoryId invalid');
+      if (!t.cycleId || !state.cycles[t.cycleId]) errors.push('txn ' + tid + ' cycleId invalid');
+      if (typeof t.note === 'string' && t.note.length > 280) errors.push('txn ' + tid + ' note >280 chars');
+    }
+
+    return { ok: errors.length === 0, errors: errors };
+  }
+
+  return { validate: validate };
+})();
+</script>
+<script>
+var Migrate = (function () {
+  'use strict';
+
+  // v0 = legacy single-file app shape:
+  // { startBudget, startDate, endDate?, transactions: [{ id, datetime, amount, note }] }
+  function isV0(obj) {
+    return !!(obj
+      && typeof obj.startBudget === 'number'
+      && typeof obj.startDate === 'string'
+      && Array.isArray(obj.transactions)
+      && obj.schemaVersion == null);
+  }
+
+  function migrateV0toV1(v0, nowISO, idGen, defaultCategories) {
+    var cycleId = idGen('cycle');
+    var cycle = {
+      id: cycleId,
+      startDate: v0.startDate,
+      endDate: v0.endDate || v0.startDate,
+      startBudget: v0.startBudget,
+      archivedAt: null,
+      createdAt: nowISO
+    };
+
+    var otherId = null;
+    for (var cid in defaultCategories) {
+      if (defaultCategories[cid].name.toLowerCase() === 'other') { otherId = cid; break; }
+    }
+
+    var transactions = {};
+    (v0.transactions || []).forEach(function (t) {
+      var newId = idGen('txn');
+      var iso = t.datetime || (t.date ? t.date + 'T00:00:00.000Z' : nowISO);
+      var dateOnly = iso.slice(0, 10);
+      transactions[newId] = {
+        id: newId,
+        cycleId: cycleId,
+        categoryId: otherId,
+        date: dateOnly,
+        amount: Math.abs(Number(t.amount) || 0),
+        isRefund: false,
+        isExcludedFromPace: false,
+        note: t.note || '',
+        createdAt: iso,
+        updatedAt: iso
+      };
+    });
+
+    var cycles = {};
+    cycles[cycleId] = cycle;
+
+    return {
+      schemaVersion: 1,
+      settings: {
+        currency: 'AED',
+        salaryDay: 25,
+        theme: 'system',
+        activeCycleId: cycleId,
+        locale: 'en',
+        lastUsedCategoryId: otherId
+      },
+      categories: defaultCategories,
+      cycles: cycles,
+      transactions: transactions
+    };
+  }
+
+  function migrate(state, options) {
+    if (!state || typeof state !== 'object') return options.empty();
+
+    if (isV0(state)) {
+      return migrateV0toV1(state, options.now, options.idGen, options.defaultCategories);
+    }
+
+    var s = JSON.parse(JSON.stringify(state));
+    s.schemaVersion = s.schemaVersion || 1;
+    s.settings = s.settings || {};
+    if (s.settings.currency == null) s.settings.currency = 'AED';
+    if (s.settings.salaryDay == null) s.settings.salaryDay = 25;
+    if (s.settings.theme == null) s.settings.theme = 'system';
+    if (s.settings.locale == null) s.settings.locale = 'en';
+    if (s.settings.lastUsedCategoryId === undefined) s.settings.lastUsedCategoryId = null;
+    if (s.settings.activeCycleId === undefined) s.settings.activeCycleId = null;
+    s.categories = s.categories || {};
+    s.cycles = s.cycles || {};
+    s.transactions = s.transactions || {};
+    return s;
+  }
+
+  return { migrate: migrate, migrateV0toV1: migrateV0toV1, isV0: isV0 };
+})();
+</script>
+<script>
+var Calc = (function () {
+  'use strict';
+
+  // ---- Pure date arithmetic (Howard Hinnant) — no Date constructors ----
+  function _ymdToDays(y, m, d) {
+    y -= m <= 2 ? 1 : 0;
+    var era = Math.floor((y >= 0 ? y : y - 399) / 400);
+    var yoe = y - era * 400;
+    var doy = Math.floor((153 * (m + (m > 2 ? -3 : 9)) + 2) / 5) + d - 1;
+    var doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+    return era * 146097 + doe - 719468;
+  }
+  function _daysToYmd(days) {
+    days += 719468;
+    var era = Math.floor((days >= 0 ? days : days - 146096) / 146097);
+    var doe = days - era * 146097;
+    var yoe = Math.floor((doe - Math.floor(doe / 1460) + Math.floor(doe / 36524) - Math.floor(doe / 146096)) / 365);
+    var y = yoe + era * 400;
+    var doy = doe - (365 * yoe + Math.floor(yoe / 4) - Math.floor(yoe / 100));
+    var mp = Math.floor((5 * doy + 2) / 153);
+    var d = doy - Math.floor((153 * mp + 2) / 5) + 1;
+    var m = mp + (mp < 10 ? 3 : -9);
+    y += m <= 2 ? 1 : 0;
+    return { y: y, m: m, d: d };
+  }
+  function _addDays(iso, n) {
+    var days = _ymdToDays(+iso.slice(0, 4), +iso.slice(5, 7), +iso.slice(8, 10)) + n;
+    var ymd = _daysToYmd(days);
+    return ymd.y + '-' + String(ymd.m).padStart(2, '0') + '-' + String(ymd.d).padStart(2, '0');
+  }
+  function daysBetweenInclusive(startISO, endISO) {
+    var a = _ymdToDays(+startISO.slice(0, 4), +startISO.slice(5, 7), +startISO.slice(8, 10));
+    var b = _ymdToDays(+endISO.slice(0, 4), +endISO.slice(5, 7), +endISO.slice(8, 10));
+    return b - a + 1;
+  }
+
+  function activeCycle(state) {
+    var id = state && state.settings && state.settings.activeCycleId;
+    return (id && state.cycles[id]) || null;
+  }
+
+  function cycleTransactions(state, cycleId) {
+    var out = [];
+    for (var tid in state.transactions) {
+      if (state.transactions[tid].cycleId === cycleId) out.push(state.transactions[tid]);
+    }
+    return out;
+  }
+
+  function txnSignedAmount(t) {
+    return t.isRefund ? -t.amount : t.amount;
+  }
+
+  function cycleTotalSpent(state, cycleId) {
+    var sum = 0;
+    var txns = cycleTransactions(state, cycleId);
+    for (var i = 0; i < txns.length; i++) {
+      if (txns[i].isExcludedFromPace) continue;
+      sum += txnSignedAmount(txns[i]);
+    }
+    return Math.round(sum * 100) / 100;
+  }
+
+  function todaySpent(state, todayISO, cycleId) {
+    var sum = 0;
+    var txns = cycleTransactions(state, cycleId);
+    for (var i = 0; i < txns.length; i++) {
+      if (txns[i].date !== todayISO) continue;
+      if (txns[i].isExcludedFromPace) continue;
+      sum += txnSignedAmount(txns[i]);
+    }
+    return Math.round(sum * 100) / 100;
+  }
+
+  function daysLeftIncludingToday(cycle, todayISO) {
+    if (todayISO < cycle.startDate) return daysBetweenInclusive(cycle.startDate, cycle.endDate);
+    if (todayISO > cycle.endDate) return 0;
+    return daysBetweenInclusive(todayISO, cycle.endDate);
+  }
+
+  function todayLimit(state, todayISO, cycleId) {
+    var cycle = state.cycles[cycleId];
+    if (!cycle) return 0;
+    var dleft = daysLeftIncludingToday(cycle, todayISO);
+    if (dleft <= 0) return 0;
+    var spentBefore = 0;
+    var txns = cycleTransactions(state, cycleId);
+    for (var i = 0; i < txns.length; i++) {
+      if (txns[i].isExcludedFromPace) continue;
+      if (txns[i].date < todayISO) spentBefore += txnSignedAmount(txns[i]);
+    }
+    var remaining = cycle.startBudget - spentBefore;
+    return Math.round((remaining / dleft) * 100) / 100;
+  }
+
+  function aedLeftToday(state, todayISO, cycleId) {
+    return Math.round((todayLimit(state, todayISO, cycleId) - todaySpent(state, todayISO, cycleId)) * 100) / 100;
+  }
+
+  // ---- Pace with ±3% deadband ----
+  function _windowSpend(txns, fromISO, toISO) {
+    var sum = 0;
+    for (var i = 0; i < txns.length; i++) {
+      if (txns[i].isExcludedFromPace) continue;
+      if (txns[i].date >= fromISO && txns[i].date <= toISO) sum += txnSignedAmount(txns[i]);
+    }
+    return sum;
+  }
+
+  function pace(state, todayISO, cycleId, minEntries) {
+    minEntries = minEntries == null ? 4 : minEntries;
+    var txns = cycleTransactions(state, cycleId);
+    var counted = txns.filter(function (t) { return !t.isExcludedFromPace; });
+    if (counted.length < minEntries) return 'unknown';
+
+    var fromA = _addDays(todayISO, -2), toA = todayISO;
+    var fromB = _addDays(todayISO, -5), toB = _addDays(todayISO, -3);
+    var a = _windowSpend(txns, fromA, toA);
+    var b = _windowSpend(txns, fromB, toB);
+
+    if (b <= 0 && a <= 0) return 'on-track';
+    if (b <= 0) return a > 0 ? 'fast' : 'on-track';
+
+    var ratio = a / b;
+    if (ratio <= 1.03) return 'on-track';
+    if (ratio <= 1.15) return 'slightly-fast';
+    return 'fast';
+  }
+
+  // ---- Historical reconstruction (single forward pass, O(N)) ----
+  function historicalLimitsByDay(state, cycleId) {
+    var cycle = state.cycles[cycleId];
+    if (!cycle) return {};
+    var byDay = {};
+    var txns = cycleTransactions(state, cycleId).slice().sort(function (a, b) {
+      return a.date.localeCompare(b.date);
+    });
+    var spentBefore = 0;
+    var i = 0;
+    var day = cycle.startDate;
+    while (true) {
+      var dleft = daysLeftIncludingToday(cycle, day);
+      var remaining = cycle.startBudget - spentBefore;
+      var limit = dleft > 0 ? Math.round((remaining / dleft) * 100) / 100 : 0;
+      var spentToday = 0;
+      while (i < txns.length && txns[i].date === day) {
+        if (!txns[i].isExcludedFromPace) spentToday += txnSignedAmount(txns[i]);
+        i++;
+      }
+      byDay[day] = { limit: limit, spent: Math.round(spentToday * 100) / 100 };
+      spentBefore += spentToday;
+      if (day === cycle.endDate) break;
+      day = _addDays(day, 1);
+    }
+    return byDay;
+  }
+
+  function cycleSummary(state, cycleId) {
+    var cycle = state.cycles[cycleId];
+    if (!cycle) return null;
+    var txns = cycleTransactions(state, cycleId).filter(function (t) { return !t.isExcludedFromPace; });
+    var total = cycleTotalSpent(state, cycleId);
+    var totalDays = daysBetweenInclusive(cycle.startDate, cycle.endDate);
+    var avgDaily = totalDays > 0 ? Math.round((total / totalDays) * 100) / 100 : 0;
+
+    var byDay = {};
+    for (var j = 0; j < txns.length; j++) {
+      byDay[txns[j].date] = (byDay[txns[j].date] || 0) + txnSignedAmount(txns[j]);
+    }
+    var biggestDay = null;
+    for (var d in byDay) {
+      if (!biggestDay || byDay[d] > biggestDay.amount) biggestDay = { date: d, amount: Math.round(byDay[d] * 100) / 100 };
+    }
+
+    var biggestTxn = null;
+    for (var k = 0; k < txns.length; k++) {
+      if (!biggestTxn || txns[k].amount > biggestTxn.amount) biggestTxn = txns[k];
+    }
+
+    var byCat = {};
+    for (var m = 0; m < txns.length; m++) {
+      var cid = txns[m].categoryId;
+      byCat[cid] = (byCat[cid] || 0) + txnSignedAmount(txns[m]);
+    }
+    var topCategories = Object.keys(byCat).map(function (id) {
+      return { categoryId: id, amount: Math.round(byCat[id] * 100) / 100 };
+    }).sort(function (a, b) { return b.amount - a.amount; }).slice(0, 5);
+
+    return { total: total, avgDaily: avgDaily, biggestDay: biggestDay, biggestTxn: biggestTxn, topCategories: topCategories };
+  }
+
+  return {
+    daysBetweenInclusive: daysBetweenInclusive,
+    activeCycle: activeCycle,
+    cycleTransactions: cycleTransactions,
+    cycleTotalSpent: cycleTotalSpent,
+    todaySpent: todaySpent,
+    daysLeftIncludingToday: daysLeftIncludingToday,
+    todayLimit: todayLimit,
+    aedLeftToday: aedLeftToday,
+    pace: pace,
+    historicalLimitsByDay: historicalLimitsByDay,
+    cycleSummary: cycleSummary
+  };
+})();
+</script>
+<script>
+var Store = (function () {
+  'use strict';
+
+  var STORAGE_KEY = 'spending-tracker:v1';
+  var BACKUP_KEY  = 'spending-tracker:lastAutoBackup';
+  var THEME_KEY   = 'spending-tracker:theme-cache';
+
+  function empty() {
+    return {
+      schemaVersion: 1,
+      settings: {
+        currency: 'AED',
+        salaryDay: 25,
+        theme: 'system',
+        activeCycleId: null,
+        locale: 'en',
+        lastUsedCategoryId: null
+      },
+      categories: {},
+      cycles: {},
+      transactions: {}
+    };
+  }
+
+  function clone(state) { return JSON.parse(JSON.stringify(state)); }
+
+  function parse(raw) {
+    if (raw == null || raw === '') return { state: empty(), recovered: false };
+    try {
+      var obj = JSON.parse(raw);
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return { state: empty(), recovered: true };
+      return { state: obj, recovered: false };
+    } catch (e) {
+      return { state: empty(), recovered: true };
+    }
+  }
+
+  function save(state, storage) {
+    try {
+      storage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return { ok: true };
+    } catch (e) {
+      var msg = (e && e.name === 'QuotaExceededError') ? 'quota' : (e && e.message) || 'unknown';
+      return { ok: false, error: msg };
+    }
+  }
+
+  function load(storage) {
+    try { return parse(storage.getItem(STORAGE_KEY)); }
+    catch (e) { return { state: empty(), recovered: true }; }
+  }
+
+  function snapshot(state, storage) {
+    try { storage.setItem(BACKUP_KEY, JSON.stringify(state)); return { ok: true }; }
+    catch (e) { return { ok: false, error: e.message }; }
+  }
+
+  function restoreSnapshot(storage) {
+    try {
+      var raw = storage.getItem(BACKUP_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+
+  function clearSnapshot(storage) {
+    try { storage.removeItem(BACKUP_KEY); } catch (e) {}
+  }
+
+  // ---- Immutable mutators: transactions ----
+  function addTransaction(state, txn) {
+    if (!txn || !txn.id) throw new Error('addTransaction: txn.id required');
+    var s = clone(state);
+    s.transactions[txn.id] = txn;
+    return s;
+  }
+
+  function updateTransaction(state, id, patch) {
+    if (!state.transactions[id]) throw new Error('updateTransaction: id not found');
+    var s = clone(state);
+    s.transactions[id] = Object.assign({}, s.transactions[id], patch);
+    return s;
+  }
+
+  function deleteTransaction(state, id) {
+    var s = clone(state);
+    delete s.transactions[id];
+    return s;
+  }
+
+  // ---- Immutable mutators: categories ----
+  function addCategory(state, cat) {
+    if (!cat || !cat.id || !cat.name) throw new Error('addCategory: id+name required');
+    var lower = cat.name.toLowerCase().trim();
+    for (var id in state.categories) {
+      if (state.categories[id].name.toLowerCase().trim() === lower) {
+        throw new Error('addCategory: duplicate name');
+      }
+    }
+    var s = clone(state);
+    s.categories[cat.id] = cat;
+    return s;
+  }
+
+  function updateCategory(state, id, patch) {
+    if (!state.categories[id]) throw new Error('updateCategory: id not found');
+    if (patch.name) {
+      var lower = patch.name.toLowerCase().trim();
+      for (var oid in state.categories) {
+        if (oid !== id && state.categories[oid].name.toLowerCase().trim() === lower) {
+          throw new Error('updateCategory: duplicate name');
+        }
+      }
+    }
+    var s = clone(state);
+    s.categories[id] = Object.assign({}, s.categories[id], patch);
+    return s;
+  }
+
+  function archiveCategory(state, id) {
+    return updateCategory(state, id, { isArchived: true });
+  }
+
+  function deleteCategory(state, id) {
+    for (var tid in state.transactions) {
+      if (state.transactions[tid].categoryId === id) {
+        throw new Error('deleteCategory: category has transactions; reassign first');
+      }
+    }
+    var s = clone(state);
+    delete s.categories[id];
+    return s;
+  }
+
+  function reassignCategory(state, fromId, toId) {
+    if (!state.categories[toId]) throw new Error('reassignCategory: target id not found');
+    var s = clone(state);
+    for (var tid in s.transactions) {
+      if (s.transactions[tid].categoryId === fromId) s.transactions[tid].categoryId = toId;
+    }
+    return s;
+  }
+
+  // ---- Immutable mutators: cycles ----
+  function addCycle(state, cycle) {
+    if (!cycle || !cycle.id) throw new Error('addCycle: id required');
+    var s = clone(state);
+    s.cycles[cycle.id] = cycle;
+    return s;
+  }
+
+  function archiveCycle(state, id, archivedAt) {
+    if (!state.cycles[id]) throw new Error('archiveCycle: id not found');
+    var s = clone(state);
+    s.cycles[id] = Object.assign({}, s.cycles[id], { archivedAt: archivedAt });
+    return s;
+  }
+
+  // ---- Immutable mutators: settings ----
+  function updateSettings(state, patch) {
+    var s = clone(state);
+    s.settings = Object.assign({}, s.settings, patch);
+    if (typeof s.settings.salaryDay === 'number') {
+      s.settings.salaryDay = Math.max(1, Math.min(28, Math.round(s.settings.salaryDay)));
+    }
+    return s;
+  }
+
+  return {
+    STORAGE_KEY: STORAGE_KEY, BACKUP_KEY: BACKUP_KEY, THEME_KEY: THEME_KEY,
+    empty: empty, clone: clone,
+    parse: parse, save: save, load: load,
+    snapshot: snapshot, restoreSnapshot: restoreSnapshot, clearSnapshot: clearSnapshot,
+    addTransaction: addTransaction, updateTransaction: updateTransaction, deleteTransaction: deleteTransaction,
+    addCategory: addCategory, updateCategory: updateCategory, archiveCategory: archiveCategory,
+    deleteCategory: deleteCategory, reassignCategory: reassignCategory,
+    addCycle: addCycle, archiveCycle: archiveCycle,
+    updateSettings: updateSettings
+  };
+})();
+</script>
+<script>
+var Sheet = (function () {
+  'use strict';
+
+  var current = null;
+
+  function _installFocusTrap(wrap) {
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab') return;
+      var focusable = wrap.querySelectorAll('input:not([disabled]), button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+  }
+
+  function open(opts) {
+    close();
+    var root = document.getElementById('modal-root');
+    var lastFocus = document.activeElement;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'sheet-wrap';
+    wrap.innerHTML =
+      '<div class="scrim" data-close></div>' +
+      '<div class="sheet" role="dialog" aria-modal="true" tabindex="-1">' +
+        '<div class="sheet-chrome">' +
+          '<span></span>' +
+          '<div class="sheet-handle"></div>' +
+          '<button class="sheet-close" data-close aria-label="Close">&times;</button>' +
+        '</div>' +
+        '<div class="sheet-body">' +
+          opts.contentHTML +
+        '</div>' +
+      '</div>';
+    root.appendChild(wrap);
+
+    document.body.style.overflow = 'hidden';
+    current = { wrap: wrap, onClose: opts.onClose, lastFocus: lastFocus };
+
+    _installFocusTrap(wrap);
+
+    setTimeout(function () {
+      var first = wrap.querySelector('input, button, select, [tabindex]:not([tabindex="-1"])');
+      (first || wrap.querySelector('.sheet')).focus();
+    }, 50);
+
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+    current.onKey = onKey;
+
+    wrap.addEventListener('click', function (e) {
+      if (e.target.hasAttribute && e.target.hasAttribute('data-close')) close();
+    });
+
+    return wrap;
+  }
+
+  function close() {
+    if (!current) return;
+    var c = current; current = null;
+    document.removeEventListener('keydown', c.onKey);
+    document.body.style.overflow = '';
+    if (c.wrap.parentNode) c.wrap.parentNode.removeChild(c.wrap);
+    if (c.lastFocus && c.lastFocus.focus) c.lastFocus.focus();
+    if (c.onClose) c.onClose();
+    document.dispatchEvent(new CustomEvent('sheet:closed'));
+  }
+
+  function isOpen() { return !!current; }
+
+  return { open: open, close: close, isOpen: isOpen };
+})();
+</script>
+<script>
+var Toast = (function () {
+  'use strict';
+
+  var current = null;
+
+  function show(opts) {
+    hide();
+    var root = document.getElementById('toast-root');
+    if (!root) return;
+    var variant = opts.variant || 'default';
+    var duration = opts.duration || (opts.action ? 10000 : 3000);
+
+    var el = document.createElement('div');
+    el.className = 'toast' + (variant === 'success' ? ' success' : variant === 'error' ? ' error' : '');
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.innerHTML =
+      '<div class="toast-body">' + Format.escapeHTML(opts.message) + '</div>' +
+      (opts.action ? '<button class="toast-action">' + Format.escapeHTML(opts.action) + '</button>' : '');
+    root.appendChild(el);
+
+    var actionBtn = el.querySelector('.toast-action');
+    if (actionBtn && opts.onAction) {
+      actionBtn.addEventListener('click', function () { var cb = opts.onAction; hide(); cb(); });
+    }
+
+    var timer = setTimeout(hide, duration);
+    current = { el: el, timer: timer };
+  }
+
+  function hide() {
+    if (!current) return;
+    clearTimeout(current.timer);
+    if (current.el.parentNode) current.el.parentNode.removeChild(current.el);
+    current = null;
+  }
+
+  return { show: show, hide: hide };
+})();
+</script>
+<script>
+var ConfirmDialog = (function () {
+  'use strict';
+
+  function open(opts) {
+    return new Promise(function (resolve) {
+      var root = document.getElementById('modal-root');
+      var lastFocus = document.activeElement;
+      var wrap = document.createElement('div');
+      wrap.className = 'dialog-wrap';
+      wrap.innerHTML =
+        '<div class="scrim"></div>' +
+        '<div class="dialog" role="dialog" aria-modal="true">' +
+          '<h3>' + Format.escapeHTML(opts.title) + '</h3>' +
+          (opts.text ? '<p>' + Format.escapeHTML(opts.text) + '</p>' : '') +
+          '<div class="actions">' +
+            '<button class="btn btn-ghost" data-action="cancel">' + Format.escapeHTML(opts.cancelLabel || I18n.t('cancel')) + '</button>' +
+            '<button class="btn ' + (opts.danger ? 'btn-danger-solid' : 'btn-primary') + '" data-action="ok">' + Format.escapeHTML(opts.okLabel || I18n.t('ok')) + '</button>' +
+          '</div>' +
+        '</div>';
+      root.appendChild(wrap);
+
+      // Focus trap
+      function trap(e) {
+        if (e.key !== 'Tab') return;
+        var f = wrap.querySelectorAll('button');
+        if (!f.length) return;
+        var first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+      wrap.addEventListener('keydown', trap);
+
+      function done(v) {
+        if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+        document.removeEventListener('keydown', onKey);
+        if (lastFocus && lastFocus.focus) lastFocus.focus();
+        resolve(v);
+      }
+      function onKey(e) { if (e.key === 'Escape') done(false); }
+      document.addEventListener('keydown', onKey);
+      wrap.addEventListener('click', function (e) {
+        if (!(e.target instanceof Element)) return;
+        if (e.target.classList.contains('scrim')) return done(false);
+        var a = e.target.getAttribute('data-action');
+        if (a === 'ok') done(true);
+        if (a === 'cancel') done(false);
+      });
+      setTimeout(function () {
+        var ok = wrap.querySelector('[data-action="ok"]');
+        if (ok) ok.focus();
+      }, 50);
+    });
+  }
+
+  return { open: open };
+})();
+</script>
+<script>
+var EntrySheet = (function () {
+  'use strict';
+
+  function _yesterdayISO(todayISO) {
+    var y = +todayISO.slice(0, 4), m = +todayISO.slice(5, 7), d = +todayISO.slice(8, 10);
+    d -= 1;
+    if (d < 1) {
+      m -= 1; if (m < 1) { m = 12; y -= 1; }
+      var dim = [31, ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      d = dim[m - 1];
+    }
+    return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+
+  function open(state, todayISO, onSave) {
+    var defaultCatId = state.settings.lastUsedCategoryId || Object.keys(state.categories)[0];
+    var local = { categoryId: defaultCatId, date: todayISO, isRefund: false };
+
+    var cats = Object.values(state.categories)
+      .filter(function (c) { return !c.isArchived; })
+      .sort(function (a, b) { return a.order - b.order; });
+
+    var html = ''
+      + '<h2>' + I18n.t('add_spend') + '</h2>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('amount_aed') + '</label>'
+      +   '<input class="input input-lg" id="es-amount" inputmode="decimal" placeholder="0.00">'
+      +   '<div class="qa-row">'
+      +     '<button class="qa" data-qa="10">+10</button>'
+      +     '<button class="qa" data-qa="25">+25</button>'
+      +     '<button class="qa" data-qa="50">+50</button>'
+      +     '<button class="qa" data-qa="100">+100</button>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('category') + '</label>'
+      +   '<div class="cat-chip-row" id="es-cats">'
+      +     cats.map(function (c) {
+            return '<button class="cat-chip ' + (c.id === local.categoryId ? 'selected' : '') + '" data-cat-id="' + c.id + '">'
+              + '<span class="dot" style="background:' + Format.escapeHTML(c.color) + '"></span>'
+              + Format.escapeHTML(c.icon || '•') + ' ' + Format.escapeHTML(c.name)
+              + '</button>';
+          }).join('')
+      +   '</div>'
+      + '</div>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('when') + '</label>'
+      +   '<div class="date-row">'
+      +     '<button class="date-chip selected" data-date-pick="today">' + I18n.t('today') + '</button>'
+      +     '<button class="date-chip" data-date-pick="yesterday">' + I18n.t('yesterday') + '</button>'
+      +     '<button class="date-chip" data-date-pick="custom">📅 ' + I18n.t('pick_date') + '</button>'
+      +     '<input type="date" id="es-date-input" style="display:none">'
+      +   '</div>'
+      + '</div>'
+      + '<div class="sheet-section">'
+      +   '<button class="btn btn-ghost btn-block" id="es-note-toggle">' + I18n.t('add_note') + '</button>'
+      +   '<input class="input" id="es-note" placeholder="' + Format.escapeHTML(I18n.t('note_placeholder')) + '" style="display:none; margin-top:8px" maxlength="280">'
+      + '</div>'
+      + '<div class="toggle-row">'
+      +   '<span>' + I18n.t('refund') + '</span>'
+      +   '<button class="switch" id="es-refund" aria-pressed="false"></button>'
+      + '</div>'
+      + '<div class="sheet-footer">'
+      +   '<button class="btn btn-ghost" id="es-add-another">' + I18n.t('save_and_add') + '</button>'
+      +   '<button class="btn btn-primary" id="es-save">' + I18n.t('save') + '</button>'
+      + '</div>';
+
+    var wrap = Sheet.open({ contentHTML: html });
+    var amountEl = wrap.querySelector('#es-amount');
+    amountEl.focus();
+
+    // Enter on any input → Save
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') {
+        e.preventDefault();
+        wrap.querySelector('#es-save').click();
+      }
+    });
+
+    function doSave(stayOpen) {
+      var amt = Format.parseAmount(amountEl.value);
+      if (!(amt > 0)) { amountEl.focus(); amountEl.classList.add('error'); return; }
+      var note = (wrap.querySelector('#es-note').value || '').trim();
+      onSave({ amount: amt, categoryId: local.categoryId, date: local.date, note: note, isRefund: local.isRefund });
+      if (stayOpen) {
+        amountEl.value = ''; amountEl.classList.remove('error');
+        wrap.querySelector('#es-note').value = '';
+        amountEl.focus();
+      } else {
+        Sheet.close();
+      }
+    }
+
+    wrap.addEventListener('click', function (e) {
+      var t = e.target;
+      var qa = t.closest && t.closest('[data-qa]');
+      if (qa) { var cur = Format.parseAmount(amountEl.value) || 0; amountEl.value = (cur + Number(qa.getAttribute('data-qa'))).toFixed(2); amountEl.focus(); return; }
+      var cat = t.closest && t.closest('[data-cat-id]');
+      if (cat) {
+        local.categoryId = cat.getAttribute('data-cat-id');
+        wrap.querySelectorAll('.cat-chip').forEach(function (el) { el.classList.toggle('selected', el === cat); });
+        return;
+      }
+      var dp = t.closest && t.closest('[data-date-pick]');
+      if (dp) {
+        wrap.querySelectorAll('[data-date-pick]').forEach(function (el) { el.classList.toggle('selected', el === dp); });
+        var v = dp.getAttribute('data-date-pick');
+        if (v === 'today') local.date = todayISO;
+        else if (v === 'yesterday') local.date = _yesterdayISO(todayISO);
+        else if (v === 'custom') {
+          var di = wrap.querySelector('#es-date-input');
+          di.style.display = ''; di.value = local.date;
+          di.onchange = function () { local.date = di.value; };
+          di.focus();
+        }
+        return;
+      }
+      if (t.id === 'es-note-toggle') {
+        t.style.display = 'none';
+        var ni = wrap.querySelector('#es-note'); ni.style.display = ''; ni.focus();
+        return;
+      }
+      if (t.id === 'es-refund') {
+        local.isRefund = !local.isRefund;
+        t.classList.toggle('on', local.isRefund);
+        t.setAttribute('aria-pressed', String(local.isRefund));
+        return;
+      }
+      if (t.id === 'es-save') { doSave(false); return; }
+      if (t.id === 'es-add-another') { doSave(true); return; }
+    });
+  }
+
+  return { open: open };
+})();
+</script>
+<script>
+var EditSheet = (function () {
+  'use strict';
+
+  function open(state, txn, onAction) {
+    var local = { categoryId: txn.categoryId, date: txn.date, isRefund: !!txn.isRefund };
+    var cats = Object.values(state.categories)
+      .filter(function (c) { return !c.isArchived || c.id === txn.categoryId; })
+      .sort(function (a, b) { return a.order - b.order; });
+
+    var html = ''
+      + '<h2>' + I18n.t('edit_spend') + '</h2>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('amount_aed') + '</label>'
+      +   '<input class="input input-lg" id="ed-amount" inputmode="decimal" value="' + Number(txn.amount).toFixed(2) + '">'
+      + '</div>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('category') + '</label>'
+      +   '<div class="cat-chip-row">'
+      +     cats.map(function (c) {
+            return '<button class="cat-chip ' + (c.id === local.categoryId ? 'selected' : '') + '" data-cat-id="' + c.id + '">'
+              + '<span class="dot" style="background:' + Format.escapeHTML(c.color) + '"></span>'
+              + Format.escapeHTML(c.icon || '•') + ' ' + Format.escapeHTML(c.name)
+              + '</button>';
+          }).join('')
+      +   '</div>'
+      + '</div>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('when') + '</label>'
+      +   '<input type="date" class="input" id="ed-date" value="' + Format.escapeHTML(txn.date) + '">'
+      + '</div>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('note') + '</label>'
+      +   '<input class="input" id="ed-note" maxlength="280" value="' + Format.escapeHTML(txn.note || '') + '">'
+      + '</div>'
+      + '<div class="toggle-row">'
+      +   '<span>' + I18n.t('refund') + '</span>'
+      +   '<button class="switch ' + (local.isRefund ? 'on' : '') + '" id="ed-refund" aria-pressed="' + local.isRefund + '"></button>'
+      + '</div>'
+      + '<div class="sheet-footer">'
+      +   '<button class="btn btn-danger" id="ed-delete">' + I18n.t('delete') + '</button>'
+      +   '<button class="btn btn-primary" id="ed-save">' + I18n.t('save_changes') + '</button>'
+      + '</div>';
+
+    var wrap = Sheet.open({ contentHTML: html });
+    var amountEl = wrap.querySelector('#ed-amount');
+
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') {
+        e.preventDefault();
+        wrap.querySelector('#ed-save').click();
+      }
+    });
+
+    wrap.addEventListener('click', function (e) {
+      var t = e.target;
+      var cat = t.closest && t.closest('[data-cat-id]');
+      if (cat) {
+        local.categoryId = cat.getAttribute('data-cat-id');
+        wrap.querySelectorAll('.cat-chip').forEach(function (el) { el.classList.toggle('selected', el === cat); });
+        return;
+      }
+      if (t.id === 'ed-refund') {
+        local.isRefund = !local.isRefund;
+        t.classList.toggle('on', local.isRefund);
+        t.setAttribute('aria-pressed', String(local.isRefund));
+        return;
+      }
+      if (t.id === 'ed-save') {
+        var amt = Format.parseAmount(amountEl.value);
+        if (!(amt > 0)) { amountEl.focus(); amountEl.classList.add('error'); return; }
+        var date = wrap.querySelector('#ed-date').value || txn.date;
+        var note = (wrap.querySelector('#ed-note').value || '').trim();
+        onAction('save', { amount: amt, categoryId: local.categoryId, date: date, note: note, isRefund: local.isRefund });
+        Sheet.close();
+        return;
+      }
+      if (t.id === 'ed-delete') {
+        var cat = state.categories[txn.categoryId] || { name: '?' };
+        var notePart = txn.note ? ' "' + txn.note + '"' : '';
+        ConfirmDialog.open({
+          title: I18n.t('confirm_delete_txn_title'),
+          text: I18n.t('confirm_delete_txn_text', { amount: Format.fmtMoney(txn.amount, state.settings.currency), cat: cat.name, notePart: notePart }),
+          okLabel: I18n.t('delete'),
+          danger: true
+        }).then(function (ok) {
+          if (!ok) return;
+          onAction('delete');
+          Sheet.close();
+        });
+        return;
+      }
+    });
+  }
+
+  return { open: open };
+})();
+</script>
+<script>
+var SettingsSheet = (function () {
+  'use strict';
+
+  function _downloadBlob(content, type, filename) {
+    var blob = new Blob([content], { type: type });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportJSON(state, todayISO, nowISO) {
+    var payload = { app: 'spending-tracker', schemaVersion: 1, exportedAt: nowISO, state: state };
+    _downloadBlob(JSON.stringify(payload, null, 2), 'application/json', 'spending-tracker-backup-' + todayISO + '.json');
+  }
+
+  function exportCSV(state, todayISO) {
+    var rows = [['date', 'categoryName', 'amount', 'isRefund', 'isExcludedFromPace', 'note', 'cycleStart', 'cycleEnd']];
+    var sorted = Object.values(state.transactions).slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
+    for (var i = 0; i < sorted.length; i++) {
+      var t = sorted[i];
+      var c = state.categories[t.categoryId] || { name: '?' };
+      var cyc = state.cycles[t.cycleId] || { startDate: '', endDate: '' };
+      var note = '"' + (t.note || '').replace(/"/g, '""') + '"';
+      var name = '"' + c.name.replace(/"/g, '""') + '"';
+      rows.push([t.date, name, Number(t.amount).toFixed(2), t.isRefund ? 'true' : 'false', t.isExcludedFromPace ? 'true' : 'false', note, cyc.startDate, cyc.endDate]);
+    }
+    var csv = '﻿' + rows.map(function (r) { return r.join(','); }).join('\r\n');
+    _downloadBlob(csv, 'text/csv;charset=utf-8', 'spending-tracker-export-' + todayISO + '.csv');
+  }
+
+  function _render(state) {
+    var cyc = Calc.activeCycle(state);
+    var cats = Object.values(state.categories)
+      .filter(function (c) { return !c.isArchived; })
+      .sort(function (a, b) { return a.order - b.order; });
+    var txnCounts = {};
+    for (var tid in state.transactions) {
+      var cid = state.transactions[tid].categoryId;
+      txnCounts[cid] = (txnCounts[cid] || 0) + 1;
+    }
+    var theme = state.settings.theme;
+
+    return ''
+      + '<h2>' + I18n.t('settings') + '</h2>'
+
+      + '<div class="settings-section">'
+      +   '<h3>' + I18n.t('cycle') + '</h3>'
+      +   '<div class="settings-row"><span>' + I18n.t('cycle_budget') + '</span><button data-action="edit-budget">' + Format.fmtMoney(cyc ? cyc.startBudget : 0, state.settings.currency) + '</button></div>'
+      +   '<div class="settings-row"><span>' + I18n.t('cycle_salary') + '</span><button data-action="edit-salary">' + state.settings.salaryDay + '</button></div>'
+      +   (cyc ? '<div class="settings-row"><span>' + I18n.t('cycle_current') + '</span><span class="value">' + Format.fmtDateShort(cyc.startDate) + ' → ' + Format.fmtDateShort(cyc.endDate) + '</span></div>' : '')
+      + '</div>'
+
+      + '<div class="settings-section">'
+      +   '<h3>' + I18n.t('categories') + '</h3>'
+      +   cats.map(function (c) {
+          return '<div class="category-row">'
+            + '<span class="grab" aria-hidden="true">⋮⋮</span>'
+            + '<button class="cat-edit" data-action="edit-cat" data-cat-id="' + c.id + '" style="text-align:start;background:none;border:none;color:var(--text);padding:0">' + Format.escapeHTML(c.icon || '•') + ' ' + Format.escapeHTML(c.name) + '</button>'
+            + '<span class="right">' + I18n.t('cat_count', { n: txnCounts[c.id] || 0 }) + '</span>'
+            + '<button class="del-cat" data-action="delete-cat" data-cat-id="' + c.id + '" aria-label="Delete">×</button>'
+            + '</div>';
+        }).join('')
+      +   '<button class="btn btn-ghost btn-block" data-action="add-cat" style="margin-top:6px">' + I18n.t('add_category') + '</button>'
+      + '</div>'
+
+      + '<div class="settings-section">'
+      +   '<h3>' + I18n.t('display') + '</h3>'
+      +   '<div class="settings-row"><span>' + I18n.t('theme_label') + '</span>'
+      +     '<div class="seg">'
+      +       '<button class="' + (theme === 'light' ? 'active' : '') + '" data-action="theme" data-theme="light">' + I18n.t('theme_light') + '</button>'
+      +       '<button class="' + (theme === 'dark' ? 'active' : '') + '" data-action="theme" data-theme="dark">' + I18n.t('theme_dark') + '</button>'
+      +       '<button class="' + (theme === 'system' ? 'active' : '') + '" data-action="theme" data-theme="system">' + I18n.t('theme_system') + '</button>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="settings-row"><span>' + I18n.t('currency') + '</span><span class="value">' + Format.escapeHTML(state.settings.currency) + '</span></div>'
+      + '</div>'
+
+      + '<div class="settings-section">'
+      +   '<h3>' + I18n.t('backup') + '</h3>'
+      +   '<button class="btn btn-block" data-action="export-json" style="margin-bottom:6px">⬇ ' + I18n.t('export_json') + '</button>'
+      +   '<button class="btn btn-block" data-action="import-json" style="margin-bottom:6px">⬆ ' + I18n.t('import_json') + '</button>'
+      +   '<button class="btn btn-block" data-action="export-csv" style="margin-bottom:6px">⬇ ' + I18n.t('export_csv') + '</button>'
+      +   '<input type="file" id="ss-import-input" accept="application/json,.json" style="display:none">'
+      +   '<p style="color:var(--muted);font-size:12px;margin-top:10px;line-height:1.5">' + I18n.t('backup_tip') + '</p>'
+      + '</div>'
+
+      + '<div class="settings-section">'
+      +   '<h3>' + I18n.t('danger_zone') + '</h3>'
+      +   '<button class="btn btn-danger btn-block" data-action="reset-all">' + I18n.t('reset_all') + '</button>'
+      + '</div>'
+
+      + '<p style="text-align:center;color:var(--muted);font-size:11px;margin:18px 0 0">' + I18n.t('version') + '</p>';
+  }
+
+  function open(state, callbacks) {
+    var wrap = Sheet.open({ contentHTML: _render(state) });
+
+    function rerender() {
+      // Only update the body so the sticky chrome (handle + close) stays intact
+      var body = wrap.querySelector('.sheet-body');
+      if (body) body.innerHTML = _render(state);
+    }
+
+    function reopenSelf() { open(state, callbacks); }
+
+    wrap.addEventListener('click', function (e) {
+      var t = e.target;
+      var btn = t.closest && t.closest('[data-action]');
+      if (!btn) return;
+      var action = btn.getAttribute('data-action');
+
+      if (action === 'edit-budget') {
+        var cyc = Calc.activeCycle(state);
+        if (!cyc) return;
+        EditValueSheet.open({
+          title: I18n.t('cycle_edit_budget'),
+          label: I18n.t('cycle_budget') + ' (AED)',
+          value: cyc.startBudget,
+          type: 'number',
+          inputmode: 'decimal',
+          large: true,
+          validate: function (v) { return (v > 0) ? null : 'Budget must be greater than zero.'; },
+          onSave: function (v) { state = callbacks.onCycleBudget(v); },
+          onClose: reopenSelf
+        });
+        return;
+      }
+      if (action === 'edit-salary') {
+        EditValueSheet.open({
+          title: I18n.t('cycle_edit_salary'),
+          label: I18n.t('salary_day') + ' (1–28)',
+          value: state.settings.salaryDay,
+          type: 'number',
+          inputmode: 'numeric',
+          validate: function (v) { return (v >= 1 && v <= 28) ? null : 'Salary day must be between 1 and 28.'; },
+          onSave: function (v) { state = callbacks.onSalaryDay(Math.round(v)); },
+          onClose: reopenSelf
+        });
+        return;
+      }
+      if (action === 'add-cat') {
+        CategorySheet.open({
+          title: I18n.t('add_category').replace(/^\+\s*/, ''),
+          initial: { name: '', icon: '•', color: '#5ab19a' },
+          onSave: function (input) {
+            try { state = callbacks.onAddCategory(input); }
+            catch (err) { Toast.show({ message: err.message, variant: 'error' }); }
+          },
+          onClose: reopenSelf
+        });
+        return;
+      }
+      if (action === 'edit-cat') {
+        var cid = btn.getAttribute('data-cat-id');
+        var cat = state.categories[cid];
+        CategorySheet.open({
+          title: 'Edit category',
+          initial: { name: cat.name, icon: cat.icon, color: cat.color },
+          onSave: function (input) {
+            try { state = callbacks.onUpdateCategory(cid, input); }
+            catch (err) { Toast.show({ message: err.message, variant: 'error' }); }
+          },
+          onClose: reopenSelf
+        });
+        return;
+      }
+      if (action === 'delete-cat') {
+        var cid2 = btn.getAttribute('data-cat-id');
+        var refCount = Object.values(state.transactions).filter(function (x) { return x.categoryId === cid2; }).length;
+        if (refCount === 0) {
+          state = callbacks.onDeleteCategory(cid2);
+          rerender();
+          return;
+        }
+        var others = Object.values(state.categories).filter(function (c) { return c.id !== cid2 && !c.isArchived; });
+        if (others.length === 0) {
+          Toast.show({ message: 'Add another category first.', variant: 'error' });
+          return;
+        }
+        ReassignSheet.open({
+          others: others,
+          refCount: refCount,
+          onPick: function (newCatId) {
+            state = callbacks.onReassignAndDelete(cid2, newCatId);
+          },
+          onClose: reopenSelf
+        });
+        return;
+      }
+      if (action === 'theme') {
+        var theme = btn.getAttribute('data-theme');
+        state = callbacks.onTheme(theme);
+        rerender();
+        return;
+      }
+      if (action === 'export-json') { callbacks.onExportJSON(); return; }
+      if (action === 'export-csv') { callbacks.onExportCSV(); return; }
+      if (action === 'import-json') {
+        wrap.querySelector('#ss-import-input').click();
+        return;
+      }
+      if (action === 'reset-all') {
+        ConfirmDialog.open({
+          title: I18n.t('confirm_reset_title'),
+          text: I18n.t('confirm_reset_text'),
+          okLabel: I18n.t('reset_action'),
+          danger: true
+        }).then(function (ok) {
+          if (!ok) return;
+          callbacks.onResetAll();
+          Sheet.close();
+        });
+        return;
+      }
+    });
+
+    wrap.addEventListener('change', function (e) {
+      if (e.target && e.target.id === 'ss-import-input') {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var parsed = JSON.parse(reader.result);
+            var s = parsed.state || parsed;
+            if (typeof s.startBudget !== 'number' && (typeof s.schemaVersion !== 'number' || !s.transactions)) {
+              Toast.show({ message: I18n.t('toast_invalid_backup'), variant: 'error' });
+              return;
+            }
+            callbacks.onRestore(s);
+          } catch (err) {
+            Toast.show({ message: I18n.t('toast_invalid_backup'), variant: 'error' });
+          } finally {
+            e.target.value = '';
+          }
+        };
+        reader.readAsText(file);
+      }
+    });
+  }
+
+  return { open: open, exportJSON: exportJSON, exportCSV: exportCSV };
+})();
+</script>
+<script>
+var OnboardingSheet = (function () {
+  'use strict';
+
+  function open(onComplete) {
+    var local = { seedCats: true };
+    var html = ''
+      + '<h2>' + I18n.t('onboarding_title') + '</h2>'
+      + '<p style="margin:-8px 0 18px">' + I18n.t('onboarding_intro') + '</p>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('onboarding_budget') + '</label>'
+      +   '<input class="input input-lg" id="ob-budget" inputmode="decimal" value="12454.70">'
+      + '</div>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('onboarding_salary_day') + '</label>'
+      +   '<input class="input" id="ob-salary" inputmode="numeric" value="25" style="text-align:center; font-weight:600">'
+      +   '<p style="font-size:12px;color:var(--muted);margin:6px 0 0">' + I18n.t('onboarding_salary_help') + '</p>'
+      + '</div>'
+      + '<div class="toggle-row" style="margin-bottom:12px">'
+      +   '<span>' + I18n.t('onboarding_seed') + '<br><span style="font-size:11px;color:var(--muted)">' + I18n.t('onboarding_seed_help') + '</span></span>'
+      +   '<button class="switch on" id="ob-seed" aria-pressed="true"></button>'
+      + '</div>'
+      + '<div class="sheet-footer">'
+      +   '<button class="btn btn-ghost" id="ob-sample">' + I18n.t('load_sample') + '</button>'
+      +   '<button class="btn btn-primary" id="ob-start">' + I18n.t('get_started') + '</button>'
+      + '</div>';
+
+    var wrap = Sheet.open({ contentHTML: html });
+
+    wrap.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t.id === 'ob-seed') {
+        local.seedCats = !local.seedCats;
+        t.classList.toggle('on', local.seedCats);
+        t.setAttribute('aria-pressed', String(local.seedCats));
+        return;
+      }
+      if (t.id === 'ob-start') {
+        var b = Format.parseAmount(wrap.querySelector('#ob-budget').value);
+        var s = parseInt(wrap.querySelector('#ob-salary').value, 10);
+        if (!(b > 0)) { wrap.querySelector('#ob-budget').focus(); wrap.querySelector('#ob-budget').classList.add('error'); return; }
+        if (!(s >= 1 && s <= 28)) { wrap.querySelector('#ob-salary').focus(); wrap.querySelector('#ob-salary').classList.add('error'); return; }
+        Sheet.close();
+        onComplete({ budget: b, salaryDay: s, seedCats: local.seedCats, loadSample: false });
+        return;
+      }
+      if (t.id === 'ob-sample') {
+        Sheet.close();
+        onComplete({ budget: 12454.70, salaryDay: 25, seedCats: true, loadSample: true });
+        return;
+      }
+    });
+  }
+
+  return { open: open };
+})();
+</script>
+<script>
+var CycleRolloverSheet = (function () {
+  'use strict';
+
+  function open(state, cycle, onChoice) {
+    var sum = Calc.cycleSummary(state, cycle.id) || { total: 0, avgDaily: 0, biggestDay: null, biggestTxn: null, topCategories: [] };
+    var currency = state.settings.currency;
+    var under = cycle.startBudget - sum.total;
+    var underLabel = under >= 0 ? I18n.t('rollover_under') : I18n.t('rollover_over');
+    var underClass = under >= 0 ? 'color:var(--green)' : 'color:var(--red)';
+    var biggestCat = sum.topCategories[0] ? (state.categories[sum.topCategories[0].categoryId] || { name: '?' }) : null;
+
+    var html = ''
+      + '<h2>' + I18n.t('cycle_ended_title') + ' 🎉</h2>'
+      + '<p style="margin:-8px 0 14px">' + I18n.t('cycle_ended_sub', { start: Format.fmtDateShort(cycle.startDate), end: Format.fmtDateShort(cycle.endDate) }) + '</p>'
+      + '<div class="summary-card" style="margin-top:0">'
+      +   '<div class="stat-row"><span class="lbl">' + I18n.t('rollover_total_spent') + '</span><span style="font-weight:600">' + Format.fmtMoney(sum.total, currency) + '</span></div>'
+      +   '<div class="stat-row"><span class="lbl">' + underLabel + '</span><span style="font-weight:600;' + underClass + '">' + Format.fmtMoney(Math.abs(under), currency) + '</span></div>'
+      +   (biggestCat ? '<div class="stat-row"><span class="lbl">' + I18n.t('rollover_biggest_cat') + '</span><span style="font-weight:600">' + Format.escapeHTML(biggestCat.icon || '•') + ' ' + Format.escapeHTML(biggestCat.name) + ' · ' + Format.fmtMoney(sum.topCategories[0].amount, currency) + '</span></div>' : '')
+      +   (sum.biggestDay ? '<div class="stat-row"><span class="lbl">' + I18n.t('rollover_biggest_day') + '</span><span style="font-weight:600">' + Format.fmtDateShort(sum.biggestDay.date) + ' · ' + Format.fmtMoney(sum.biggestDay.amount, currency) + '</span></div>' : '')
+      +   '<div class="stat-row"><span class="lbl">' + I18n.t('rollover_avg') + '</span><span style="font-weight:600">' + Format.fmtMoney(sum.avgDaily, currency) + '</span></div>'
+      + '</div>'
+      + '<div id="cr-new-budget-wrap" style="display:none" class="sheet-section">'
+      +   '<label>' + I18n.t('rollover_new_budget') + '</label>'
+      +   '<input class="input input-lg" id="cr-new-budget" inputmode="decimal" value="' + cycle.startBudget + '">'
+      + '</div>'
+      + '<div class="sheet-footer" style="grid-template-columns:1fr">'
+      +   '<button class="btn btn-primary full-row" id="cr-same">' + I18n.t('rollover_same', { amount: Format.fmtMoney(cycle.startBudget, currency) }) + '</button>'
+      +   '<button class="btn btn-ghost full-row" id="cr-diff">' + I18n.t('rollover_diff') + '</button>'
+      +   '<button class="btn btn-primary full-row" id="cr-diff-save" style="display:none">' + I18n.t('save') + '</button>'
+      + '</div>';
+
+    var wrap = Sheet.open({ contentHTML: html });
+
+    wrap.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t.id === 'cr-same') { Sheet.close(); onChoice({ sameBudget: true }); return; }
+      if (t.id === 'cr-diff') {
+        wrap.querySelector('#cr-new-budget-wrap').style.display = '';
+        wrap.querySelector('#cr-diff').style.display = 'none';
+        wrap.querySelector('#cr-same').style.display = 'none';
+        wrap.querySelector('#cr-diff-save').style.display = '';
+        wrap.querySelector('#cr-new-budget').focus();
+        return;
+      }
+      if (t.id === 'cr-diff-save') {
+        var b = Format.parseAmount(wrap.querySelector('#cr-new-budget').value);
+        if (!(b > 0)) { wrap.querySelector('#cr-new-budget').classList.add('error'); return; }
+        Sheet.close();
+        onChoice({ sameBudget: false, newBudget: b });
+        return;
+      }
+    });
+  }
+
+  return { open: open };
+})();
+</script>
+<script>
+var ReassignSheet = (function () {
+  'use strict';
+
+  // opts: { others, refCount, onPick, onClose }
+  function open(opts) {
+    var others = opts.others;
+    var refCount = opts.refCount;
+    var selected = others[0].id;
+    var html = ''
+      + '<h2>' + I18n.t('reassign_title') + '</h2>'
+      + '<p style="margin:-8px 0 14px">' + I18n.t('reassign_help', { n: refCount }) + '</p>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('reassign_to') + '</label>'
+      +   '<div class="cat-chip-row">'
+      +     others.map(function (c) {
+            return '<button class="cat-chip ' + (c.id === selected ? 'selected' : '') + '" data-cat-id="' + c.id + '">'
+              + '<span class="dot" style="background:' + Format.escapeHTML(c.color) + '"></span>'
+              + Format.escapeHTML(c.icon || '•') + ' ' + Format.escapeHTML(c.name)
+              + '</button>';
+          }).join('')
+      +   '</div>'
+      + '</div>'
+      + '<div class="sheet-footer">'
+      +   '<button class="btn btn-ghost" data-close>' + I18n.t('cancel') + '</button>'
+      +   '<button class="btn btn-primary" id="rs-confirm">' + I18n.t('ok') + '</button>'
+      + '</div>';
+
+    var wrap = Sheet.open({ contentHTML: html, onClose: opts.onClose });
+    wrap.addEventListener('click', function (e) {
+      var t = e.target;
+      var cat = t.closest && t.closest('[data-cat-id]');
+      if (cat) {
+        selected = cat.getAttribute('data-cat-id');
+        wrap.querySelectorAll('.cat-chip').forEach(function (el) { el.classList.toggle('selected', el === cat); });
+        return;
+      }
+      if (t.id === 'rs-confirm') {
+        if (opts.onPick) opts.onPick(selected);
+        Sheet.close();
+        return;
+      }
+    });
+  }
+
+  return { open: open };
+})();
+</script>
+<script>
+var EditValueSheet = (function () {
+  'use strict';
+
+  // opts: { title, label, value, type: 'number'|'text', inputmode, hint, onSave, validate }
+  function open(opts) {
+    var html = ''
+      + '<h2>' + Format.escapeHTML(opts.title) + '</h2>'
+      + (opts.hint ? '<p style="margin:-8px 0 14px">' + Format.escapeHTML(opts.hint) + '</p>' : '')
+      + '<div class="sheet-section">'
+      +   '<label>' + Format.escapeHTML(opts.label) + '</label>'
+      +   '<input class="input ' + (opts.large ? 'input-lg' : '') + '" id="evs-input" '
+      +     'type="' + (opts.type || 'text') + '" '
+      +     (opts.inputmode ? 'inputmode="' + opts.inputmode + '" ' : '')
+      +     'value="' + Format.escapeHTML(String(opts.value == null ? '' : opts.value)) + '">'
+      + '</div>'
+      + '<div class="sheet-footer">'
+      +   '<button class="btn btn-ghost" data-close>' + I18n.t('cancel') + '</button>'
+      +   '<button class="btn btn-primary" id="evs-save">' + I18n.t('save') + '</button>'
+      + '</div>';
+
+    var wrap = Sheet.open({ contentHTML: html, onClose: opts.onClose });
+    var input = wrap.querySelector('#evs-input');
+    setTimeout(function () { input.focus(); input.select && input.select(); }, 60);
+
+    function doSave() {
+      var raw = input.value;
+      var v = opts.type === 'number' ? Format.parseAmount(raw) : String(raw).trim();
+      var err = opts.validate ? opts.validate(v) : null;
+      if (err) { input.classList.add('error'); Toast.show({ message: err, variant: 'error' }); return; }
+      if (opts.onSave) opts.onSave(v);   // update state BEFORE close so onClose reopen sees fresh state
+      Sheet.close();
+    }
+
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target === input) { e.preventDefault(); doSave(); }
+    });
+    wrap.addEventListener('click', function (e) {
+      if (e.target && e.target.id === 'evs-save') doSave();
+    });
+  }
+
+  return { open: open };
+})();
+</script>
+<script>
+var CategorySheet = (function () {
+  'use strict';
+
+  var PALETTE = ['#5ab19a','#e67e22','#3498db','#9b59b6','#e74c3c','#f5a623','#16a34a','#7f8c8d','#ec4899','#06b6d4'];
+
+  // opts: { title, initial:{name,icon,color}, onSave(input) }
+  function open(opts) {
+    var init = opts.initial || { name: '', icon: '•', color: PALETTE[0] };
+    var local = { name: init.name, icon: init.icon || '•', color: init.color || PALETTE[0] };
+
+    var html = ''
+      + '<h2>' + Format.escapeHTML(opts.title) + '</h2>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('cat_name_label') + '</label>'
+      +   '<input class="input" id="cs-name" maxlength="32" value="' + Format.escapeHTML(local.name) + '">'
+      + '</div>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('cat_icon_label') + '</label>'
+      +   '<input class="input" id="cs-icon" maxlength="2" value="' + Format.escapeHTML(local.icon) + '" style="text-align:center;font-size:22px">'
+      + '</div>'
+      + '<div class="sheet-section">'
+      +   '<label>' + I18n.t('cat_color_label') + '</label>'
+      +   '<div class="cat-chip-row" id="cs-colors">'
+      +     PALETTE.map(function (c) {
+            var sel = c.toLowerCase() === (local.color || '').toLowerCase();
+            return '<button class="cat-chip ' + (sel ? 'selected' : '') + '" data-color="' + c + '" aria-label="' + c + '">'
+              + '<span class="dot" style="background:' + c + ';width:18px;height:18px"></span>'
+              + '</button>';
+          }).join('')
+      +   '</div>'
+      + '</div>'
+      + '<div class="sheet-footer">'
+      +   '<button class="btn btn-ghost" data-close>' + I18n.t('cancel') + '</button>'
+      +   '<button class="btn btn-primary" id="cs-save">' + I18n.t('save') + '</button>'
+      + '</div>';
+
+    var wrap = Sheet.open({ contentHTML: html, onClose: opts.onClose });
+    setTimeout(function () { wrap.querySelector('#cs-name').focus(); }, 60);
+
+    wrap.addEventListener('click', function (e) {
+      var t = e.target;
+      var col = t.closest && t.closest('[data-color]');
+      if (col) {
+        local.color = col.getAttribute('data-color');
+        wrap.querySelectorAll('[data-color]').forEach(function (el) { el.classList.toggle('selected', el === col); });
+        return;
+      }
+      if (t.id === 'cs-save') {
+        var name = (wrap.querySelector('#cs-name').value || '').trim();
+        var icon = (wrap.querySelector('#cs-icon').value || '•').trim() || '•';
+        if (!name) { wrap.querySelector('#cs-name').classList.add('error'); Toast.show({ message: 'Name is required.', variant: 'error' }); return; }
+        if (opts.onSave) opts.onSave({ name: name, icon: icon, color: local.color });
+        Sheet.close();
+      }
+    });
+
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') {
+        e.preventDefault();
+        wrap.querySelector('#cs-save').click();
+      }
+    });
+  }
+
+  return { open: open };
+})();
+</script>
+<script>
+var PastCycleView = (function () {
+  'use strict';
+
+  function render(state, cycle) {
+    var sum = Calc.cycleSummary(state, cycle.id);
+    if (!sum) return '';
+    var currency = state.settings.currency;
+    var under = cycle.startBudget - sum.total;
+    var chipClass = under >= 0 ? 'good' : 'bad';
+    var chipLabel = under >= 0 ? I18n.t('rollover_under') : I18n.t('rollover_over');
+
+    var bars = sum.topCategories.map(function (tc) {
+      var cat = state.categories[tc.categoryId] || { name: '?', icon: '•', color: '#999' };
+      var pct = sum.total > 0 ? Math.max(2, Math.round((tc.amount / sum.total) * 100)) : 0;
+      return '<div class="cat-bar-row">'
+        + '<span>' + Format.escapeHTML(cat.icon || '•') + '</span>'
+        + '<div><div style="font-weight:600;font-size:13px">' + Format.escapeHTML(cat.name) + '</div>'
+        + '<div class="bar"><div style="width:' + pct + '%;background:' + cat.color + '"></div></div></div>'
+        + '<span style="font-weight:600">' + Format.fmtMoney(tc.amount, currency) + '</span>'
+        + '</div>';
+    }).join('');
+
+    var biggestDay = sum.biggestDay
+      ? Format.fmtDateShort(sum.biggestDay.date) + ' · ' + Format.fmtMoney(sum.biggestDay.amount, currency)
+      : '—';
+    var biggestTxnLabel = '—';
+    if (sum.biggestTxn) {
+      var bc = state.categories[sum.biggestTxn.categoryId] || { name: '?' };
+      biggestTxnLabel = Format.fmtDateShort(sum.biggestTxn.date) + ' · ' + Format.fmtMoney(sum.biggestTxn.amount, currency) + ' · ' + bc.name;
+    }
+
+    return ''
+      + '<div class="summary-card">'
+      +   '<div class="head">'
+      +     '<span class="label">' + I18n.t('rollover_total_spent') + '</span>'
+      +     '<span class="chip ' + chipClass + '">' + chipLabel + ' ' + Format.fmtMoney(Math.abs(under), currency) + '</span>'
+      +   '</div>'
+      +   '<div class="big">' + Format.fmtMoney(sum.total, currency) + '</div>'
+      +   '<div style="color:var(--muted);font-size:13px;margin-top:4px">of ' + Format.fmtMoney(cycle.startBudget, currency) + ' cycle budget</div>'
+      + '</div>'
+      + (bars ? '<div class="summary-card">'
+        + '<div class="head"><span class="label">' + I18n.t('by_category') + '</span></div>' + bars
+        + '</div>' : '')
+      + '<div class="summary-card">'
+      +   '<div class="head"><span class="label">' + I18n.t('highlights') + '</span></div>'
+      +   '<div class="stat-row"><span class="lbl">' + I18n.t('avg_per_day') + '</span><span style="font-weight:600">' + Format.fmtMoney(sum.avgDaily, currency) + '</span></div>'
+      +   '<div class="stat-row"><span class="lbl">' + I18n.t('biggest_day_label') + '</span><span style="font-weight:600">' + biggestDay + '</span></div>'
+      +   '<div class="stat-row"><span class="lbl">' + I18n.t('biggest_single') + '</span><span style="font-weight:600">' + biggestTxnLabel + '</span></div>'
+      + '</div>'
+      + '<p style="text-align:center;color:var(--muted);font-size:12px;margin:12px 0">' + I18n.t('readonly_archived') + '</p>';
+  }
+
+  return { render: render };
+})();
+</script>
+<script>
+var HomeView = (function () {
+  'use strict';
+
+  function _txnRow(t, state) {
+    var cat = (state.categories[t.categoryId]) || { name: '?', icon: '•', color: '#999' };
+    var time = t.createdAt ? Format.fmtTime(t.createdAt) : '';
+    return '<li class="txn" data-edit-id="' + t.id + '">'
+      +   '<span class="cat-dot" style="background:' + cat.color + '33;color:' + cat.color + '">' + Format.escapeHTML(cat.icon || '•') + '</span>'
+      +   '<div class="main">'
+      +     '<div class="top-line">' + Format.escapeHTML(cat.name) + (t.isRefund ? ' · Refund' : '') + '</div>'
+      +     '<div class="bot-line">' + time + (t.note ? (time ? ' · ' : '') + Format.escapeHTML(t.note) : '') + '</div>'
+      +   '</div>'
+      +   '<div class="amount ' + (t.isRefund ? 'refund' : '') + '">' + (t.isRefund ? '−' : '') + Number(t.amount).toFixed(2) + '</div>'
+      +   '<div class="chev">›</div>'
+      + '</li>';
+  }
+
+  function render(state, ctx) {
+    var today = ctx.todayISO;
+    var cyc = Calc.activeCycle(state);
+    if (!cyc) return '<div class="app-body"><div class="empty-state">' + I18n.t('no_active_cycle') + '</div></div>';
+
+    var left   = Calc.aedLeftToday(state, today, cyc.id);
+    var spent  = Calc.todaySpent(state, today, cyc.id);
+    var limit  = Calc.todayLimit(state, today, cyc.id);
+    var daysLeft = Calc.daysLeftIncludingToday(cyc, today);
+    var paceKey = Calc.pace(state, today, cyc.id);
+    var paceLabel = paceKey === 'unknown' ? I18n.t('pace_unknown')
+                  : paceKey === 'on-track' ? I18n.t('pace_on_track')
+                  : paceKey === 'slightly-fast' ? I18n.t('pace_slightly_fast')
+                  : I18n.t('pace_fast');
+    var paceClass = paceKey === 'on-track' ? 'good' : paceKey === 'slightly-fast' ? 'warn' : paceKey === 'fast' ? 'bad' : '';
+    var paceIcon  = paceKey === 'on-track' ? '🟢' : paceKey === 'slightly-fast' ? '🟡' : paceKey === 'fast' ? '🔴' : '';
+
+    var heroClass = left < 0 ? 'hero-amount over' : 'hero-amount';
+    var heroLabel = left < 0 ? I18n.t('hero_over') : I18n.t('hero_left');
+    var heroAbs = Math.abs(left).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var heroCurrency = left < 0 ? '−AED' : 'AED';
+
+    var todaysTxns = Object.values(state.transactions)
+      .filter(function (t) { return t.cycleId === cyc.id && t.date === today; })
+      .sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+
+    var todayList = todaysTxns.length
+      ? todaysTxns.map(function (t) { return _txnRow(t, state); }).join('')
+      : '<li><div class="empty-state"><div class="e-emoji">🌱</div><div class="e-title">' + I18n.t('no_spends_today') + '</div></div></li>';
+
+    var daysLabel = daysLeft === 1 ? I18n.t('day_left') : I18n.t('days_left', { n: daysLeft });
+
+    return ''
+      + '<header class="app-header">'
+      +   '<div class="app-title">' + I18n.t('app_title') + ' <small>· ' + Format.fmtDateShort(cyc.startDate) + ' → ' + Format.fmtDateShort(cyc.endDate) + '</small></div>'
+      +   '<button class="icon-btn" data-action="open-settings" aria-label="Settings">⚙</button>'
+      + '</header>'
+      + '<div class="app-body">'
+      +   '<div class="hero">'
+      +     '<div class="hero-label">' + heroLabel + '</div>'
+      +     '<div class="' + heroClass + '" id="hero-amount" aria-label="' + Math.abs(left).toFixed(2) + ' dirhams ' + (left < 0 ? 'over' : 'left to spend') + ' today">'
+      +       '<span class="currency">' + heroCurrency + '</span>' + heroAbs
+      +     '</div>'
+      +     '<div class="hero-sub">' + I18n.t('spent_today') + ' ' + Format.fmtMoney(spent, state.settings.currency) + ' · of ' + Format.fmtMoney(limit, state.settings.currency) + ' limit</div>'
+      +     '<div class="chip-row">'
+      +       (paceLabel ? '<span class="chip ' + paceClass + '">' + (paceIcon ? paceIcon + ' ' : '') + paceLabel + '</span>' : '')
+      +       '<span class="chip">' + daysLabel + '</span>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="section-h">' + I18n.t('today_label') + '</div>'
+      +   '<ul class="txn-list">' + todayList + '</ul>'
+      + '</div>';
+  }
+
+  return { render: render };
+})();
+</script>
+<script>
+var HistoryView = (function () {
+  'use strict';
+
+  function _txnRow(t, state) {
+    var cat = state.categories[t.categoryId] || { name: '?', icon: '•', color: '#999' };
+    var time = t.createdAt ? Format.fmtTime(t.createdAt) : '';
+    return '<li class="txn" data-edit-id="' + t.id + '">'
+      +   '<span class="cat-dot" style="background:' + cat.color + '33;color:' + cat.color + '">' + Format.escapeHTML(cat.icon || '•') + '</span>'
+      +   '<div class="main">'
+      +     '<div class="top-line">' + Format.escapeHTML(cat.name) + (t.isRefund ? ' · Refund' : '') + '</div>'
+      +     '<div class="bot-line">' + time + (t.note ? (time ? ' · ' : '') + Format.escapeHTML(t.note) : '') + '</div>'
+      +   '</div>'
+      +   '<div class="amount ' + (t.isRefund ? 'refund' : '') + '">' + (t.isRefund ? '−' : '') + Number(t.amount).toFixed(2) + '</div>'
+      +   '<div class="chev">›</div>'
+      + '</li>';
+  }
+
+  function _signed(t) { return t.isRefund ? -t.amount : t.amount; }
+
+  function render(state, ctx) {
+    var today = ctx.todayISO;
+    var viewingCycleId = ctx.viewingCycleId || (state.settings.activeCycleId);
+    var activeId = state.settings.activeCycleId;
+
+    var cycles = Object.values(state.cycles).slice().sort(function (a, b) { return b.startDate.localeCompare(a.startDate); });
+    var cycleChips = cycles.map(function (c) {
+      var label = Format.fmtDateShort(c.startDate) + ' → ' + Format.fmtDateShort(c.endDate);
+      if (c.id === activeId) label += ' · ' + I18n.t('cycle_current_chip');
+      return '<button class="date-chip ' + (c.id === viewingCycleId ? 'selected' : '') + '" data-cycle-id="' + c.id + '">' + label + '</button>';
+    }).join('');
+
+    var viewing = state.cycles[viewingCycleId];
+    if (!viewing) return '<div class="app-body"><div class="empty-state">' + I18n.t('no_active_cycle') + '</div></div>';
+
+    var summaryHTML = '';
+    if (viewing.id !== activeId) {
+      summaryHTML = PastCycleView.render(state, viewing);
+    }
+
+    // Group txns by day
+    var txns = Object.values(state.transactions).filter(function (t) { return t.cycleId === viewing.id; });
+    txns.sort(function (a, b) { return b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''); });
+
+    var groups = {};
+    var orderedDays = [];
+    for (var i = 0; i < txns.length; i++) {
+      var d = txns[i].date;
+      if (!groups[d]) { groups[d] = []; orderedDays.push(d); }
+      groups[d].push(txns[i]);
+    }
+
+    function _yesterdayOf(iso) {
+      // Cheap helper for relative day labels — only compares strings
+      var y = +iso.slice(0, 4), m = +iso.slice(5, 7), dd = +iso.slice(8, 10);
+      dd -= 1;
+      if (dd < 1) {
+        m -= 1; if (m < 1) { m = 12; y -= 1; }
+        var dim = [31, ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        dd = dim[m - 1];
+      }
+      return y + '-' + String(m).padStart(2, '0') + '-' + String(dd).padStart(2, '0');
+    }
+
+    var yesterdayISO = _yesterdayOf(today);
+
+    var groupsHTML = orderedDays.length === 0
+      ? '<div class="empty-state">' + I18n.t('empty_history') + '</div>'
+      : orderedDays.map(function (d) {
+          var label = d === today ? I18n.t('today_label')
+                    : d === yesterdayISO ? I18n.t('yesterday_label')
+                    : Format.fmtDateLong(d);
+          var dayTotal = groups[d].reduce(function (s, t) { return s + _signed(t); }, 0);
+          var rows = groups[d].map(function (t) { return _txnRow(t, state); }).join('');
+          return '<div class="section-h">' + label + '<span class="right">' + groups[d].length + ' · ' + Format.fmtMoney(dayTotal, state.settings.currency) + '</span></div>'
+            + '<ul class="txn-list">' + rows + '</ul>';
+        }).join('');
+
+    return ''
+      + '<header class="app-header">'
+      +   '<div class="app-title">' + I18n.t('tab_history') + '</div>'
+      +   '<button class="icon-btn" data-action="open-settings" aria-label="Settings">⚙</button>'
+      + '</header>'
+      + '<div class="app-body">'
+      +   '<div style="display:flex;gap:6px;overflow-x:auto;padding-block:4px;margin-bottom:8px">' + cycleChips + '</div>'
+      +   summaryHTML
+      +   groupsHTML
+      + '</div>';
+  }
+
+  return { render: render };
+})();
+</script>
+<script>
+var LandingView = (function () {
+  'use strict';
+
+  function render() {
+    return ''
+      + '<div class="landing">'
+      +   '<div class="landing-inner">'
+      +     '<div class="landing-mark">'
+      +       '<svg viewBox="0 0 192 192" width="64" height="64" aria-hidden="true">'
+      +         '<rect width="192" height="192" rx="36" fill="var(--accent)"/>'
+      +         '<text x="96" y="126" font-size="92" font-weight="700" fill="#fff" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif">AED</text>'
+      +       '</svg>'
+      +     '</div>'
+      +     '<h1 class="landing-h1">Spend without guessing.</h1>'
+      +     '<p class="landing-sub">Your salary, divided by the days until payday. One number — refreshed every morning — that tells you exactly how much you can spend today and still make it to the 25th.</p>'
+      +     '<ul class="landing-bullets">'
+      +       '<li><span class="emoji">🎯</span><div><b>One number to check.</b> "AED left today" — the only thing you look at before you pay.</div></li>'
+      +       '<li><span class="emoji">📈</span><div><b>Self-correcting.</b> Overspend Monday, tomorrow\'s limit drops. Underspend Tuesday, it goes up. Always finds the path back to payday.</div></li>'
+      +       '<li><span class="emoji">🔒</span><div><b>Stays on your device.</b> No accounts, no cloud, no tracking. Your money data never leaves your browser.</div></li>'
+      +     '</ul>'
+      +     '<button class="btn btn-primary landing-cta" data-action="landing-start">Start tracking &rarr;</button>'
+      +     '<p class="landing-foot">Free · Works offline · Install as an app</p>'
+      +   '</div>'
+      + '</div>';
+  }
+
+  return { render: render };
+})();
+</script>
+<script>
+var App = (function () {
+  'use strict';
+
+  // ===== THE ONLY MODULE allowed to use new Date / crypto.randomUUID / Math.random =====
+  function nowISO() { return new Date().toISOString(); }
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function uuid(prefix) {
+    var id;
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) id = crypto.randomUUID();
+    else id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    return (prefix ? prefix + '-' : '') + id;
+  }
+
+  // ===== State + UI =====
+  var state = null;
+  var ui = { tab: 'home', viewingCycleId: null };
+  var _pendingStorageRefresh = false;
+
+  // ===== Lazy migration options (seed only generated if v0 path taken) =====
+  function _migrateOpts() {
+    var cachedSeed = null;
+    var n = nowISO();
+    return {
+      now: n,
+      idGen: uuid,
+      empty: Store.empty,
+      get defaultCategories() {
+        if (!cachedSeed) cachedSeed = Seed.defaultCategories(n, uuid);
+        return cachedSeed;
+      }
+    };
+  }
+
+  // ===== Cycle end date from salary day =====
+  function _daysInMonth(y, m) {
+    if (m === 2) return ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 29 : 28;
+    return [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+  }
+  function _cycleEndForStart(startISO, salaryDay) {
+    var y = +startISO.slice(0, 4), m = +startISO.slice(5, 7), d = +startISO.slice(8, 10);
+    var nextY = y, nextM = m;
+    if (d >= salaryDay) { nextM = m + 1; if (nextM > 12) { nextM = 1; nextY = y + 1; } }
+    var endD = salaryDay - 1, endY = nextY, endM = nextM;
+    if (endD < 1) {
+      endM -= 1; if (endM < 1) { endM = 12; endY -= 1; }
+      endD = _daysInMonth(endY, endM);
+    }
+    return endY + '-' + String(endM).padStart(2, '0') + '-' + String(endD).padStart(2, '0');
+  }
+
+  // ===== Init =====
+  function init() {
+    var loaded = Store.load(window.localStorage);
+    state = Migrate.migrate(loaded.state, _migrateOpts());
+
+    if (loaded.recovered) {
+      setTimeout(function () {
+        Toast.show({
+          message: I18n.t('banner_recovered'),
+          action: I18n.t('banner_recovered_action'),
+          duration: 10000,
+          onAction: function () { _openSettings(); }
+        });
+      }, 100);
+    }
+
+    var firstRun = Object.keys(state.cycles).length === 0;
+    if (firstRun) {
+      ui.tab = 'landing';
+      render();
+      _registerSW();
+      _listenStorageEvents();
+      _listenVisibility();
+      _listenSheetClosed();
+      return;
+    }
+
+    ui.viewingCycleId = state.settings.activeCycleId;
+    render();
+    _checkCycleRollover();
+    _registerSW();
+    _listenStorageEvents();
+    _listenVisibility();
+    _listenSheetClosed();
+  }
+
+  function _onOnboardingComplete(opts) {
+    var now = nowISO();
+    var s = Store.empty();
+    var otherId = null;
+    if (opts.seedCats || opts.loadSample) {
+      var cats = Seed.defaultCategories(now, uuid);
+      s.categories = cats;
+      for (var cid in cats) { if (cats[cid].name === 'Other') { otherId = cid; break; } }
+    }
+    var startDate = todayISO();
+    var endDate = _cycleEndForStart(startDate, opts.salaryDay);
+    var cycle = Seed.newCycle(startDate, endDate, opts.budget, now, uuid);
+    s = Store.addCycle(s, cycle);
+    s = Store.updateSettings(s, { salaryDay: opts.salaryDay, activeCycleId: cycle.id, lastUsedCategoryId: otherId });
+
+    if (opts.loadSample) {
+      var cats2 = Object.values(s.categories);
+      for (var i = 0; i < 6; i++) {
+        var cat = cats2[i % cats2.length];
+        var amt = 20 + Math.round(Math.random() * 80);
+        var txn = {
+          id: uuid('txn'), cycleId: cycle.id, categoryId: cat.id, date: startDate,
+          amount: amt, isRefund: false, isExcludedFromPace: false,
+          note: 'Sample', createdAt: now, updatedAt: now
+        };
+        s = Store.addTransaction(s, txn);
+      }
+    }
+    state = s;
+    ui.tab = 'home';
+    ui.viewingCycleId = cycle.id;
+    persist(); render();
+    setTimeout(_pulseHero, 50);
+  }
+
+  function _checkCycleRollover() {
+    var cyc = Calc.activeCycle(state);
+    if (!cyc) return;
+    if (todayISO() > cyc.endDate) {
+      CycleRolloverSheet.open(state, cyc, function (choice) { _rollCycle(cyc, choice); });
+    }
+  }
+
+  function _rollCycle(oldCycle, choice) {
+    var now = nowISO();
+    var startDate = todayISO();
+    var endDate = _cycleEndForStart(startDate, state.settings.salaryDay);
+    var newCycle = Seed.newCycle(startDate, endDate, choice.sameBudget ? oldCycle.startBudget : choice.newBudget, now, uuid);
+    var s = Store.archiveCycle(state, oldCycle.id, now);
+    s = Store.addCycle(s, newCycle);
+    s = Store.updateSettings(s, { activeCycleId: newCycle.id });
+    state = s; ui.viewingCycleId = newCycle.id;
+    persist(); render();
+  }
+
+  // ===== Persistence with debounce + flush =====
+  var _saveTimer = null;
+  var _pendingSave = false;
+
+  function persist() {
+    _pendingSave = true;
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(_flushSave, 250);
+  }
+  function _flushSave() {
+    if (!_pendingSave) return;
+    if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+    _pendingSave = false;
+    var r = Store.save(state, window.localStorage);
+    if (!r.ok) Toast.show({ message: I18n.t('toast_save_failed'), variant: 'error' });
+  }
+  function _listenVisibility() {
+    window.addEventListener('pagehide', _flushSave);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') _flushSave();
+    });
+  }
+
+  // ===== Cross-tab sync (queued while a sheet is open) =====
+  function _applyStorageRefresh() {
+    var loaded = Store.load(window.localStorage);
+    state = Migrate.migrate(loaded.state, _migrateOpts());
+    render();
+    _pendingStorageRefresh = false;
+  }
+  function _listenStorageEvents() {
+    window.addEventListener('storage', function (e) {
+      if (e.key !== Store.STORAGE_KEY) return;
+      if (Sheet.isOpen()) { _pendingStorageRefresh = true; return; }
+      _applyStorageRefresh();
+    });
+  }
+  function _listenSheetClosed() {
+    document.addEventListener('sheet:closed', function () {
+      if (_pendingStorageRefresh) _applyStorageRefresh();
+    });
+  }
+
+  // ===== Theme =====
+  function _applyTheme(theme) {
+    var resolved = theme === 'system'
+      ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : theme;
+    document.documentElement.setAttribute('data-theme', resolved);
+    try { localStorage.setItem(Store.THEME_KEY, theme); } catch (e) {}
+  }
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+    if (state && state.settings.theme === 'system') _applyTheme('system');
+  });
+
+  // ===== Render =====
+  function render() {
+    var app = document.getElementById('app');
+    var html = '';
+    if (ui.tab === 'landing') {
+      app.innerHTML = LandingView.render();
+      return;
+    }
+    if (ui.tab === 'home') html = HomeView.render(state, { todayISO: todayISO() });
+    else if (ui.tab === 'history') html = HistoryView.render(state, { todayISO: todayISO(), viewingCycleId: ui.viewingCycleId });
+    app.innerHTML = html + _renderTabbar() + _renderFab();
+  }
+  function _renderTabbar() {
+    return '<nav class="tabbar">'
+      + '<button class="tab ' + (ui.tab === 'home' ? 'active' : '') + '" data-tab="home"><div class="icon">⌂</div>' + I18n.t('tab_home') + '</button>'
+      + '<button class="tab ' + (ui.tab === 'history' ? 'active' : '') + '" data-tab="history"><div class="icon">≣</div>' + I18n.t('tab_history') + '</button>'
+      + '</nav>';
+  }
+  function _renderFab() { return '<button class="fab" data-action="add-spend" aria-label="Add spend">+</button>'; }
+
+  function _pulseHero() {
+    var el = document.getElementById('hero-amount');
+    if (!el) return;
+    el.classList.remove('pulse');
+    void el.offsetWidth;
+    el.classList.add('pulse');
+  }
+
+  // ===== Event delegation =====
+  document.addEventListener('click', function (e) {
+    if (!(e.target instanceof Element)) return;
+    var landingStart = e.target.closest('[data-action="landing-start"]');
+    if (landingStart) { OnboardingSheet.open(_onOnboardingComplete); return; }
+    var add = e.target.closest('[data-action="add-spend"]');
+    if (add) { EntrySheet.open(state, todayISO(), _onAddTxn); return; }
+    var settings = e.target.closest('[data-action="open-settings"]');
+    if (settings) { _openSettings(); return; }
+    var tab = e.target.closest('.tab[data-tab]');
+    if (tab) { ui.tab = tab.getAttribute('data-tab'); if (ui.tab === 'history') ui.viewingCycleId = state.settings.activeCycleId; render(); return; }
+    var cycChip = e.target.closest('[data-cycle-id]');
+    if (cycChip) { ui.viewingCycleId = cycChip.getAttribute('data-cycle-id'); render(); return; }
+    var editRow = e.target.closest('[data-edit-id]');
+    if (editRow) {
+      var id = editRow.getAttribute('data-edit-id');
+      var txn = state.transactions[id];
+      if (txn) EditSheet.open(state, txn, function (action, patch) { _onEditAction(id, action, patch); });
+      return;
+    }
+  });
+
+  function _onAddTxn(txnInput) {
+    var now = nowISO();
+    var txn = Object.assign({
+      id: uuid('txn'),
+      cycleId: state.settings.activeCycleId,
+      createdAt: now, updatedAt: now,
+      isExcludedFromPace: false
+    }, txnInput);
+    state = Store.addTransaction(state, txn);
+    state = Store.updateSettings(state, { lastUsedCategoryId: txn.categoryId });
+    persist(); render(); _pulseHero();
+    var cat = state.categories[txn.categoryId] || { name: '?' };
+    Toast.show({
+      message: I18n.t('toast_saved', {
+        amount: Format.fmtMoney(txn.amount, state.settings.currency),
+        cat: cat.name,
+        left: Format.fmtMoney(Calc.aedLeftToday(state, todayISO(), state.settings.activeCycleId), state.settings.currency)
+      }),
+      variant: 'success'
+    });
+  }
+
+  function _onEditAction(id, action, patch) {
+    if (action === 'save') {
+      state = Store.updateTransaction(state, id, Object.assign({ updatedAt: nowISO() }, patch));
+      persist(); render(); _pulseHero();
+      return;
+    }
+    if (action === 'delete') {
+      var deleted = state.transactions[id];
+      state = Store.deleteTransaction(state, id);
+      persist(); render(); _pulseHero();
+      Toast.show({
+        message: I18n.t('toast_deleted', {
+          left: Format.fmtMoney(Calc.aedLeftToday(state, todayISO(), state.settings.activeCycleId), state.settings.currency)
+        }),
+        action: I18n.t('undo'),
+        onAction: function () { state = Store.addTransaction(state, deleted); persist(); render(); _pulseHero(); },
+        variant: 'success'
+      });
+    }
+  }
+
+  function _openSettings() {
+    SettingsSheet.open(state, {
+      onCycleBudget: function (n) {
+        var cyc = Calc.activeCycle(state);
+        if (!cyc) return state;
+        var s = Store.clone(state);
+        s.cycles[cyc.id].startBudget = n;
+        state = s;
+        persist(); render(); return state;
+      },
+      onSalaryDay: function (d) {
+        state = Store.updateSettings(state, { salaryDay: d });
+        // Recompute active cycle's end date from new salaryDay
+        var cyc = Calc.activeCycle(state);
+        if (cyc) {
+          var s = Store.clone(state);
+          s.cycles[cyc.id].endDate = _cycleEndForStart(cyc.startDate, d);
+          state = s;
+        }
+        persist(); render(); return state;
+      },
+      onAddCategory: function (input) {
+        var cats = Object.values(state.categories);
+        var maxOrder = cats.reduce(function (m, c) { return Math.max(m, c.order || 0); }, -1);
+        var cat = {
+          id: uuid('cat'), name: input.name, icon: input.icon || '•', color: input.color || '#5ab19a',
+          order: maxOrder + 1, isArchived: false, createdAt: nowISO()
+        };
+        state = Store.addCategory(state, cat);
+        persist(); render(); return state;
+      },
+      onUpdateCategory: function (id, patch) {
+        state = Store.updateCategory(state, id, patch);
+        persist(); render(); return state;
+      },
+      onDeleteCategory: function (id) {
+        state = Store.deleteCategory(state, id);
+        persist(); render(); return state;
+      },
+      onReassignAndDelete: function (fromId, toId) {
+        state = Store.reassignCategory(state, fromId, toId);
+        state = Store.deleteCategory(state, fromId);
+        persist(); render(); return state;
+      },
+      onTheme: function (theme) {
+        state = Store.updateSettings(state, { theme: theme });
+        _applyTheme(theme);
+        persist(); render(); return state;
+      },
+      onExportJSON: function () { SettingsSheet.exportJSON(state, todayISO(), nowISO()); },
+      onExportCSV: function () { SettingsSheet.exportCSV(state, todayISO()); },
+      onRestore: function (importedRaw) {
+        ConfirmDialog.open({
+          title: I18n.t('confirm_replace_data_title'),
+          text: I18n.t('confirm_replace_data_text'),
+          okLabel: I18n.t('confirm_replace_action'),
+          danger: true
+        }).then(function (ok) {
+          if (!ok) return;
+          Store.snapshot(state, window.localStorage);
+          var migrated = Migrate.migrate(importedRaw, _migrateOpts());
+          var v = Validate.validate(migrated);
+          if (!v.ok) {
+            Toast.show({ message: 'Invalid backup: ' + v.errors[0], variant: 'error' });
+            return;
+          }
+          state = migrated;
+          ui.viewingCycleId = state.settings.activeCycleId;
+          persist(); render();
+          Sheet.close();
+          Toast.show({
+            message: I18n.t('toast_restored'),
+            action: I18n.t('undo'),
+            duration: 8000,
+            onAction: function () {
+              var snap = Store.restoreSnapshot(window.localStorage);
+              if (snap) {
+                state = Migrate.migrate(snap, _migrateOpts());
+                ui.viewingCycleId = state.settings.activeCycleId;
+                persist(); render();
+                Toast.show({ message: I18n.t('toast_restore_undone') });
+              }
+            },
+            variant: 'success'
+          });
+        });
+      },
+      onResetAll: function () {
+        Store.snapshot(state, window.localStorage);
+        try { window.localStorage.removeItem(Store.STORAGE_KEY); } catch (e) {}
+        state = Migrate.migrate(Store.empty(), _migrateOpts());
+        ui.viewingCycleId = null;
+        render();
+        Toast.show({
+          message: I18n.t('toast_reset_done'),
+          action: I18n.t('undo'),
+          duration: 30000,
+          onAction: function () {
+            var snap = Store.restoreSnapshot(window.localStorage);
+            if (snap) {
+              state = Migrate.migrate(snap, _migrateOpts());
+              ui.viewingCycleId = state.settings.activeCycleId;
+              persist(); render();
+              Toast.show({ message: I18n.t('toast_restore_undone') });
+            }
+          },
+          variant: 'success'
+        });
+        setTimeout(function () { OnboardingSheet.open(_onOnboardingComplete); }, 800);
+      }
+    });
+  }
+
+  // ===== Service worker =====
+  function _registerSW() {
+    if (!('serviceWorker' in navigator)) return;
+    if (!/^https?:/.test(location.protocol)) return;
+    navigator.serviceWorker.register('./sw.js').then(function (reg) {
+      reg.addEventListener('updatefound', function () {
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function () {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            Toast.show({
+              message: I18n.t('toast_update_available'),
+              action: I18n.t('reload'),
+              duration: 8000,
+              onAction: function () { nw.postMessage({ type: 'SKIP_WAITING' }); location.reload(); }
+            });
+          }
+        });
+      });
+    }).catch(function (e) { console.warn('SW register failed:', e); });
+  }
+
+  // ===== Boot =====
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  return {
+    init: init,
+    _internal: { uuid: uuid, todayISO: todayISO, nowISO: nowISO },
+    _migrateOpts: _migrateOpts
+  };
+})();
+</script>
+<!-- MODULES:END -->
+</body>
+</html>

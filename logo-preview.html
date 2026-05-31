@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logo Studies — Spending Tracker 2.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=IBM+Plex+Mono:wght@300;400;500;600&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f4efe5;
+    --paper-2: #ebe4d4;
+    --ink: #18181b;
+    --rule: #c8bfae;
+    --hush: #6b6359;
+    --accent: #5ab19a;
+    --warm: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(0,0,0,0.04), transparent 50%),
+      var(--paper);
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    background-attachment: fixed;
+  }
+  /* Subtle paper noise */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(0,0,0,0.012) 1px, transparent 1px),
+      radial-gradient(circle at 70% 60%, rgba(0,0,0,0.012) 1px, transparent 1px),
+      radial-gradient(circle at 50% 80%, rgba(0,0,0,0.01) 1px, transparent 1px);
+    background-size: 17px 17px, 23px 23px, 19px 19px;
+    z-index: 0;
+  }
+  .wrap { position: relative; max-width: 1200px; margin: 0 auto; padding: 64px 56px 128px; z-index: 1; }
+
+  /* Folio (corner marks) */
+  .folio {
+    position: fixed; top: 18px; z-index: 2;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--hush);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .folio-l { left: 22px; }
+  .folio-r { right: 22px; text-align: right; }
+
+  /* Masthead */
+  .masthead {
+    border-top: 4px double var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: 36px 0 28px;
+    margin-bottom: 56px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 48px;
+    align-items: end;
+  }
+  .masthead h1 {
+    font-size: 88px;
+    font-weight: 500;
+    margin: 0;
+    line-height: 0.85;
+    letter-spacing: -0.025em;
+    font-style: italic;
+  }
+  .masthead h1 .amp { color: var(--accent); font-style: normal; }
+  .masthead .meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--hush);
+    text-align: right;
+    line-height: 1.9;
+    border-left: 1px solid var(--rule);
+    padding-left: 28px;
+    min-width: 220px;
+  }
+  .masthead .meta strong { color: var(--ink); }
+
+  .intro {
+    font-size: 21px;
+    line-height: 1.55;
+    color: var(--ink);
+    max-width: 720px;
+    margin-bottom: 96px;
+    font-weight: 400;
+    column-count: 1;
+  }
+  .intro em { font-style: italic; color: var(--accent); font-weight: 500; }
+  .intro .drop {
+    font-style: italic;
+    font-size: 64px;
+    line-height: 0.85;
+    float: left;
+    padding: 6px 12px 0 0;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* Per-concept section */
+  .study { margin-bottom: 80px; }
+  .study-head {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 40px;
+    margin-bottom: 28px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+    align-items: end;
+  }
+  .study-letter {
+    font-size: 200px;
+    font-weight: 400;
+    line-height: 0.78;
+    color: var(--ink);
+    font-style: italic;
+    margin: 0;
+    text-align: center;
+  }
+  .study-letter .ornament {
+    font-size: 28px;
+    color: var(--accent);
+    font-style: normal;
+    vertical-align: top;
+    margin-inline-start: -8px;
+  }
+  .study-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--hush);
+    margin-bottom: 12px;
+  }
+  .study-name {
+    font-size: 38px;
+    font-weight: 500;
+    margin: 0 0 14px;
+    line-height: 1.05;
+    font-style: italic;
+  }
+  .study-desc {
+    font-size: 16.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    max-width: 620px;
+  }
+
+  /* Comparison grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 80px repeat(3, 1fr);
+    border: 1px solid var(--ink);
+    background: var(--paper-2);
+  }
+  .grid > div {
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .grid > div:nth-child(4n) { border-right: none; }
+  .grid > div.no-bottom { border-bottom: none; }
+
+  .col-header {
+    padding: 14px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--hush);
+    text-align: center;
+    background: var(--paper);
+  }
+  .row-label {
+    background: var(--paper);
+    padding: 10px 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--hush);
+    text-align: center;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cell {
+    padding: 28px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 220px;
+    position: relative;
+  }
+  .cell-px {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.4);
+  }
+  .bg-light .cell-px { color: rgba(0,0,0,0.45); }
+  .bg-dark { color: rgba(255,255,255,0.85); }
+  .bg-dark .cell-px { color: rgba(255,255,255,0.55); }
+  .bg-accent { color: rgba(255,255,255,0.9); }
+  .bg-accent .cell-px { color: rgba(255,255,255,0.65); }
+
+  /* iOS-like wallpapers */
+  .bg-light {
+    background-image:
+      linear-gradient(180deg, rgba(255,255,255,0.4), rgba(0,0,0,0.06)),
+      radial-gradient(circle at 30% 20%, #f5d4a8, transparent 60%),
+      radial-gradient(circle at 80% 90%, #c9b7d8, transparent 65%),
+      linear-gradient(135deg, #f3c8a5 0%, #e8a5a0 50%, #b8a0c8 100%);
+  }
+  .bg-dark {
+    background-image:
+      radial-gradient(circle at 70% 15%, rgba(80, 100, 160, 0.35), transparent 55%),
+      radial-gradient(circle at 20% 90%, rgba(120, 60, 180, 0.18), transparent 60%),
+      linear-gradient(180deg, #0c1322, #050810);
+  }
+  .bg-accent {
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255,255,255,0.18), transparent 60%),
+      #5ab19a;
+  }
+
+  /* Icon frames — real iOS corner radii (continuous-style approximation) */
+  .icon-frame {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.12),
+      0 8px 24px rgba(0,0,0,0.10);
+  }
+  .icon-60  { width: 60px;  height: 60px;  border-radius: 14px; }
+  .icon-120 { width: 120px; height: 120px; border-radius: 28px; }
+  .icon-180 { width: 180px; height: 180px; border-radius: 42px; }
+  .icon-frame svg { display: block; width: 100%; height: 100%; }
+
+  /* Colophon */
+  .colophon {
+    margin-top: 96px;
+    padding-top: 32px;
+    border-top: 4px double var(--ink);
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 48px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: var(--hush);
+    line-height: 1.85;
+  }
+  .colophon h4 {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 22px;
+    color: var(--ink);
+    margin: 0 0 10px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .colophon ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: c;
+  }
+  .colophon ol li {
+    counter-increment: c;
+    padding-left: 28px;
+    position: relative;
+    margin-bottom: 6px;
+  }
+  .colophon ol li::before {
+    content: counter(c, upper-roman) ".";
+    position: absolute;
+    left: 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--accent);
+    font-size: 13px;
+  }
+
+  @media (max-width: 980px) {
+    .wrap { padding: 48px 28px 96px; }
+    .masthead { grid-template-columns: 1fr; }
+    .masthead h1 { font-size: 56px; }
+    .masthead .meta { border-left: none; padding-left: 0; min-width: 0; text-align: left; }
+    .study-head { grid-template-columns: 110px 1fr; gap: 24px; }
+    .study-letter { font-size: 120px; }
+    .icon-180 { width: 130px; height: 130px; border-radius: 30px; }
+    .grid { grid-template-columns: 56px repeat(3, 1fr); }
+    .colophon { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="folio folio-l">Spending Tracker · Vol. II</div>
+<div class="folio folio-r">Sheet 01 / Logo Studies / 2026-05</div>
+
+<!-- Reusable SVG definitions -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+
+  <!-- A. Coin with slice cut out -->
+  <symbol id="logo-a" viewBox="0 0 192 192">
+    <rect width="192" height="192" rx="42" fill="#5ab19a"/>
+    <circle cx="96" cy="96" r="56" fill="#ffffff"/>
+    <path d="M 96 96 L 96 40 A 56 56 0 0 1 152 96 Z" fill="#5ab19a"/>
+    <circle cx="96" cy="96" r="56" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.4"/>
+  </symbol>
+
+  <!-- B. Timeline with today marker -->
+  <symbol id="logo-b" viewBox="0 0 192 192">
+    <rect width="192" height="192" rx="42" fill="#1a1d23"/>
+    <line x1="36" y1="96" x2="156" y2="96" stroke="rgba(255,255,255,0.28)" stroke-width="2.5" stroke-linecap="round"/>
+    <g stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round">
+      <line x1="48" y1="86" x2="48" y2="106"/>
+      <line x1="68" y1="89" x2="68" y2="103"/>
+      <line x1="88" y1="89" x2="88" y2="103"/>
+      <line x1="108" y1="89" x2="108" y2="103"/>
+      <line x1="128" y1="89" x2="128" y2="103"/>
+      <line x1="148" y1="86" x2="148" y2="106"/>
+    </g>
+    <circle cx="88" cy="96" r="14" fill="#5ab19a"/>
+    <circle cx="88" cy="96" r="20" fill="none" stroke="#5ab19a" stroke-width="1.5" opacity="0.35"/>
+  </symbol>
+
+  <!-- C. Dirham symbol د.إ -->
+  <symbol id="logo-c" viewBox="0 0 192 192">
+    <rect width="192" height="192" rx="42" fill="#5ab19a"/>
+    <text x="96" y="135" font-family="'Amiri', 'Traditional Arabic', serif" font-size="108" font-weight="700" fill="#ffffff" text-anchor="middle" direction="rtl">د.إ</text>
+  </symbol>
+
+  <!-- D. Hourglass with money -->
+  <symbol id="logo-d" viewBox="0 0 192 192">
+    <rect width="192" height="192" rx="42" fill="#1a1d23"/>
+    <!-- frame -->
+    <line x1="58" y1="48" x2="134" y2="48" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+    <line x1="58" y1="144" x2="134" y2="144" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+    <!-- hourglass shape -->
+    <path d="M 60 50 L 132 50 L 96 96 L 132 142 L 60 142 L 96 96 Z"
+          fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- coins top (clipped to top triangle) -->
+    <g fill="#5ab19a">
+      <circle cx="78" cy="62" r="4.5"/>
+      <circle cx="92" cy="60" r="4"/>
+      <circle cx="108" cy="64" r="4.5"/>
+      <circle cx="84" cy="72" r="4"/>
+      <circle cx="100" cy="74" r="4"/>
+      <circle cx="92" cy="84" r="3.5"/>
+    </g>
+    <!-- falling grain -->
+    <circle cx="96" cy="96" r="3" fill="#5ab19a"/>
+    <circle cx="96" cy="106" r="2" fill="#5ab19a" opacity="0.7"/>
+    <!-- coins bottom (few) -->
+    <g fill="#5ab19a">
+      <circle cx="88" cy="132" r="4"/>
+      <circle cx="100" cy="134" r="3.5"/>
+      <circle cx="94" cy="124" r="3"/>
+    </g>
+  </symbol>
+
+  <!-- E. Word "today" in italic -->
+  <symbol id="logo-e" viewBox="0 0 192 192">
+    <rect width="192" height="192" rx="42" fill="#f3eee0"/>
+    <text x="96" y="120" font-family="'Cormorant Garamond', Georgia, serif" font-size="68" font-style="italic" font-weight="500" fill="#1a1d23" text-anchor="middle" letter-spacing="-1">today</text>
+    <line x1="60" y1="138" x2="132" y2="138" stroke="#5ab19a" stroke-width="2.5"/>
+  </symbol>
+
+  <!-- F. Calendar dot grid -->
+  <symbol id="logo-f" viewBox="0 0 192 192">
+    <rect width="192" height="192" rx="42" fill="#1a1d23"/>
+    <g fill="rgba(255,255,255,0.22)">
+      <circle cx="56" cy="56" r="6"/><circle cx="80" cy="56" r="6"/><circle cx="104" cy="56" r="6"/><circle cx="128" cy="56" r="6"/><circle cx="152" cy="56" r="6"/>
+      <circle cx="56" cy="80" r="6"/><circle cx="80" cy="80" r="6"/>                              <circle cx="128" cy="80" r="6"/><circle cx="152" cy="80" r="6"/>
+      <circle cx="56" cy="104" r="6"/><circle cx="80" cy="104" r="6"/><circle cx="128" cy="104" r="6"/><circle cx="152" cy="104" r="6"/>
+      <circle cx="56" cy="128" r="6"/><circle cx="80" cy="128" r="6"/><circle cx="104" cy="128" r="6"/><circle cx="128" cy="128" r="6"/><circle cx="152" cy="128" r="6"/>
+      <circle cx="56" cy="152" r="6"/><circle cx="80" cy="152" r="6"/><circle cx="104" cy="152" r="6"/><circle cx="128" cy="152" r="6"/><circle cx="152" cy="152" r="6"/>
+    </g>
+    <!-- highlighted: row 2 col 3 -->
+    <circle cx="104" cy="80" r="11" fill="#5ab19a"/>
+    <circle cx="104" cy="104" r="11" fill="#5ab19a" opacity="0"/>
+  </symbol>
+
+  <!-- CHOSEN: C set in E's treatment — cream paper, ink glyph, accent rule -->
+  <symbol id="logo-chosen" viewBox="0 0 192 192">
+    <rect width="192" height="192" rx="42" fill="#f3eee0"/>
+    <text x="96" y="135" font-family="'Amiri', 'Traditional Arabic', serif" font-size="108" font-weight="700" fill="#1a1d23" text-anchor="middle" direction="rtl">د.إ</text>
+    <line x1="60" y1="155" x2="132" y2="155" stroke="#5ab19a" stroke-width="2.5"/>
+  </symbol>
+
+  <!-- HYBRID: dirham inside calendar grid -->
+  <symbol id="logo-h" viewBox="0 0 192 192">
+    <rect width="192" height="192" rx="42" fill="#1a1d23"/>
+    <g fill="rgba(255,255,255,0.15)">
+      <circle cx="40" cy="40" r="3.5"/><circle cx="60" cy="40" r="3.5"/><circle cx="80" cy="40" r="3.5"/><circle cx="112" cy="40" r="3.5"/><circle cx="132" cy="40" r="3.5"/><circle cx="152" cy="40" r="3.5"/>
+      <circle cx="40" cy="60" r="3.5"/><circle cx="152" cy="60" r="3.5"/>
+      <circle cx="40" cy="80" r="3.5"/><circle cx="152" cy="80" r="3.5"/>
+      <circle cx="40" cy="112" r="3.5"/><circle cx="152" cy="112" r="3.5"/>
+      <circle cx="40" cy="132" r="3.5"/><circle cx="152" cy="132" r="3.5"/>
+      <circle cx="40" cy="152" r="3.5"/><circle cx="60" cy="152" r="3.5"/><circle cx="80" cy="152" r="3.5"/><circle cx="112" cy="152" r="3.5"/><circle cx="132" cy="152" r="3.5"/><circle cx="152" cy="152" r="3.5"/>
+    </g>
+    <text x="96" y="120" font-family="'Amiri', serif" font-size="76" font-weight="700" fill="#5ab19a" text-anchor="middle" direction="rtl">د.إ</text>
+  </symbol>
+
+</svg>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>Logo<br>Studies<span class="amp">.</span></h1>
+    <div class="meta">
+      <strong>Spending Tracker 2.0</strong><br>
+      Six Marks · One Hybrid<br>
+      Three Sizes<br>
+      Three Surfaces<br>
+      —<br>
+      <strong>Pick One.</strong>
+    </div>
+  </header>
+
+  <p class="intro">
+    <span class="drop">S</span>even candidate marks for a single-user, offline-first spending tracker — rendered at the three icon sizes iOS actually requests, against three real wallpapers. Each cell is the icon as it would appear on a home screen at <em>60, 120, and 180 pixels</em>. The right mark survives all nine cells without losing its character.
+  </p>
+
+  <!-- CHOSEN — featured at top -->
+  <section class="study" style="background: linear-gradient(180deg, rgba(90,177,154,0.06), transparent 80%); border: 1px solid var(--rule); padding: 36px 32px; border-radius: 4px; margin-bottom: 72px">
+    <header class="study-head" style="border-bottom-color: var(--ink)">
+      <div class="study-letter" style="color: var(--accent); font-style: normal; font-size: 110px; line-height: 1; padding-top: 10px">★</div>
+      <div>
+        <div class="study-meta" style="color: var(--accent)">CHOSEN · C in E's clothing</div>
+        <h2 class="study-name">The Dirham, Set in Type</h2>
+        <p class="study-desc">Concept C's content — the dirham glyph د.إ in classical Amiri — laid into concept E's treatment: cream paper, dark ink, a single hairline of accent green beneath the mark. Reads as a specimen-book entry rather than an app icon. Unmistakable on a UAE home screen.</p>
+      </div>
+    </header>
+    <div class="grid">
+      <div class="col-header"></div>
+      <div class="col-header">60 px</div><div class="col-header">120 px</div><div class="col-header">180 px</div>
+      <div class="row-label">Light wallpaper</div>
+      <div class="cell bg-light"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-chosen"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-chosen"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-chosen"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label">Dark wallpaper</div>
+      <div class="cell bg-dark"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-chosen"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-chosen"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-chosen"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label no-bottom">Accent green</div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-chosen"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-chosen"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-chosen"/></svg></div><div class="cell-px">180</div></div>
+    </div>
+  </section>
+
+  <!-- A -->
+  <section class="study">
+    <header class="study-head">
+      <div class="study-letter">A</div>
+      <div>
+        <div class="study-meta">Concept · Pie / Sliced Coin</div>
+        <h2 class="study-name">The Cut Slice</h2>
+        <p class="study-desc">A whole budget, with one wedge already taken by today. Reads as "money divided into days." Familiar enough to be immediately legible; common enough to feel safe — perhaps too safe.</p>
+      </div>
+    </header>
+    <div class="grid">
+      <div class="col-header"></div>
+      <div class="col-header">60 px</div>
+      <div class="col-header">120 px</div>
+      <div class="col-header">180 px</div>
+      <div class="row-label">Light wallpaper</div>
+      <div class="cell bg-light"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-a"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-a"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-a"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label">Dark wallpaper</div>
+      <div class="cell bg-dark"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-a"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-a"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-a"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label no-bottom">Accent green</div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-a"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-a"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-a"/></svg></div><div class="cell-px">180</div></div>
+    </div>
+  </section>
+
+  <!-- B -->
+  <section class="study">
+    <header class="study-head">
+      <div class="study-letter">B</div>
+      <div>
+        <div class="study-meta">Concept · Cycle Timeline</div>
+        <h2 class="study-name">Today, On The Line</h2>
+        <p class="study-desc">A horizontal cycle with tick marks for the days and a single illuminated dot for today. Unique among finance apps; matches the user's mental model exactly. Abstract enough to puzzle a first-time visitor.</p>
+      </div>
+    </header>
+    <div class="grid">
+      <div class="col-header"></div>
+      <div class="col-header">60 px</div><div class="col-header">120 px</div><div class="col-header">180 px</div>
+      <div class="row-label">Light wallpaper</div>
+      <div class="cell bg-light"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-b"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-b"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-b"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label">Dark wallpaper</div>
+      <div class="cell bg-dark"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-b"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-b"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-b"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label no-bottom">Accent green</div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-b"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-b"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-b"/></svg></div><div class="cell-px">180</div></div>
+    </div>
+  </section>
+
+  <!-- C -->
+  <section class="study">
+    <header class="study-head">
+      <div class="study-letter">C</div>
+      <div>
+        <div class="study-meta">Concept · Currency Glyph</div>
+        <h2 class="study-name">The Dirham, Set in Amiri</h2>
+        <p class="study-desc">د.إ — the dirham mark itself, set in a classical Arabic typeface, becomes the brand. Speaks plainly: this is about the dirham. Strong UAE identity. Weak portability if currency ever changes (the spec says it won't).</p>
+      </div>
+    </header>
+    <div class="grid">
+      <div class="col-header"></div>
+      <div class="col-header">60 px</div><div class="col-header">120 px</div><div class="col-header">180 px</div>
+      <div class="row-label">Light wallpaper</div>
+      <div class="cell bg-light"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-c"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-c"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-c"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label">Dark wallpaper</div>
+      <div class="cell bg-dark"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-c"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-c"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-c"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label no-bottom">Accent green</div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-c"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-c"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-c"/></svg></div><div class="cell-px">180</div></div>
+    </div>
+  </section>
+
+  <!-- D -->
+  <section class="study">
+    <header class="study-head">
+      <div class="study-letter">D</div>
+      <div>
+        <div class="study-meta">Concept · Hourglass</div>
+        <h2 class="study-name">Money, Falling</h2>
+        <p class="study-desc">An hourglass whose grain is coins, draining steadily toward payday. Time and money in one figure. More illustrative than the others — risks getting muddy at 60 px where its detail collapses.</p>
+      </div>
+    </header>
+    <div class="grid">
+      <div class="col-header"></div>
+      <div class="col-header">60 px</div><div class="col-header">120 px</div><div class="col-header">180 px</div>
+      <div class="row-label">Light wallpaper</div>
+      <div class="cell bg-light"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-d"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-d"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-d"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label">Dark wallpaper</div>
+      <div class="cell bg-dark"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-d"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-d"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-d"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label no-bottom">Accent green</div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-d"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-d"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-d"/></svg></div><div class="cell-px">180</div></div>
+    </div>
+  </section>
+
+  <!-- E -->
+  <section class="study">
+    <header class="study-head">
+      <div class="study-letter">E</div>
+      <div>
+        <div class="study-meta">Concept · Editorial Wordmark</div>
+        <h2 class="study-name">"today" — In Cormorant Italic</h2>
+        <p class="study-desc">Type as logo. A single word, drawn from a stately Italian-Renaissance serif, becomes the mark. Quiet, literary — feels less like a finance app and more like a personal diary. Risks being missed on a busy home screen.</p>
+      </div>
+    </header>
+    <div class="grid">
+      <div class="col-header"></div>
+      <div class="col-header">60 px</div><div class="col-header">120 px</div><div class="col-header">180 px</div>
+      <div class="row-label">Light wallpaper</div>
+      <div class="cell bg-light"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-e"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-e"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-e"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label">Dark wallpaper</div>
+      <div class="cell bg-dark"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-e"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-e"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-e"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label no-bottom">Accent green</div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-e"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-e"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-e"/></svg></div><div class="cell-px">180</div></div>
+    </div>
+  </section>
+
+  <!-- F -->
+  <section class="study">
+    <header class="study-head">
+      <div class="study-letter">F</div>
+      <div>
+        <div class="study-meta">Concept · Calendar Grid</div>
+        <h2 class="study-name">A Single Lit Day</h2>
+        <p class="study-desc">Twenty-five dots, one of them lit. The mark is a calendar in miniature — the smallest possible expression of "you are here." Calm, recognizable at every size, neither finance-cliché nor trying too hard.</p>
+      </div>
+    </header>
+    <div class="grid">
+      <div class="col-header"></div>
+      <div class="col-header">60 px</div><div class="col-header">120 px</div><div class="col-header">180 px</div>
+      <div class="row-label">Light wallpaper</div>
+      <div class="cell bg-light"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-f"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-f"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-f"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label">Dark wallpaper</div>
+      <div class="cell bg-dark"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-f"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-f"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-f"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label no-bottom">Accent green</div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-f"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-f"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-f"/></svg></div><div class="cell-px">180</div></div>
+    </div>
+  </section>
+
+  <!-- HYBRID -->
+  <section class="study">
+    <header class="study-head">
+      <div class="study-letter">+<span class="ornament">&hairsp;hybrid</span></div>
+      <div>
+        <div class="study-meta">Concept · C × F · Editor's Pick</div>
+        <h2 class="study-name">The Dirham on a Calendar</h2>
+        <p class="study-desc">Currency glyph centered inside a frame of calendar dots. Says <em>spending</em>, <em>daily</em>, and <em>AED</em> in one glance — without anyone needing to read a single word. The strongest answer to the brief, by some distance.</p>
+      </div>
+    </header>
+    <div class="grid">
+      <div class="col-header"></div>
+      <div class="col-header">60 px</div><div class="col-header">120 px</div><div class="col-header">180 px</div>
+      <div class="row-label">Light wallpaper</div>
+      <div class="cell bg-light"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-h"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-h"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-light"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-h"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label">Dark wallpaper</div>
+      <div class="cell bg-dark"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-h"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-h"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-dark"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-h"/></svg></div><div class="cell-px">180</div></div>
+      <div class="row-label no-bottom">Accent green</div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-60"><svg viewBox="0 0 192 192"><use href="#logo-h"/></svg></div><div class="cell-px">60</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-120"><svg viewBox="0 0 192 192"><use href="#logo-h"/></svg></div><div class="cell-px">120</div></div>
+      <div class="cell bg-accent no-bottom"><div class="icon-frame icon-180"><svg viewBox="0 0 192 192"><use href="#logo-h"/></svg></div><div class="cell-px">180</div></div>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <div>
+      <h4>How to choose</h4>
+      <ol>
+        <li>Scan the 60-pixel column first. If the mark survives there, it survives everywhere.</li>
+        <li>Cross-reference against the dark wallpaper. iOS users skew dark; the mark must hold its own on black.</li>
+        <li>Ignore the accent column when judging — the icon usually sits on the user's wallpaper, not on brand color.</li>
+        <li>Pick the one you'd recognize in your peripheral vision.</li>
+      </ol>
+    </div>
+    <div>
+      <h4>Then tell me</h4>
+      <p>Reply with the letter — <em>A · B · C · D · E · F · or +Hybrid</em>. I'll ship it as the icon, generate the PNG fallbacks (180 / 192 / 512), wire the manifest, and re-deploy.</p>
+    </div>
+    <div>
+      <h4>Set in</h4>
+      <p>Cormorant Garamond &middot; IBM Plex Mono &middot; Amiri<br>
+      Paper No. 4F0EBE5 &middot; Ink No. 18181B<br>
+      —<br>
+      Studio · 2026</p>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

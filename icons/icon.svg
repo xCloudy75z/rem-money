@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="42" fill="#f3eee0"/>
+  <text x="96" y="135" font-family="'Amiri', 'Traditional Arabic', 'Noto Naskh Arabic', serif" font-size="108" font-weight="700" fill="#1a1d23" text-anchor="middle" direction="rtl">د.إ</text>
+  <line x1="60" y1="155" x2="132" y2="155" stroke="#5ab19a" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

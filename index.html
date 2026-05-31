@@ -200,6 +200,11 @@ input { font: inherit; }
 .cat-bar-row .bar { height: 6px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
 .cat-bar-row .bar > div { height: 100%; }
 
+/* ============ RTL OVERRIDES ============ */
+html[dir="rtl"] .txn .chev { transform: scaleX(-1); }
+html[dir="rtl"] .hero-amount .currency { margin-inline-end: 0; margin-inline-start: 4px; }
+html[dir="rtl"] body { font-family: -apple-system, BlinkMacSystemFont, "SF Arabic", "Segoe UI", "Noto Naskh Arabic", "Tahoma", sans-serif; }
+
 /* ============ BANNER ============ */
 .banner { background: rgba(245,166,35,0.18); border: 1px solid var(--amber); color: var(--text); padding: 10px 14px; border-radius: 10px; margin: 8px 0; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .banner button { background: var(--amber); color: #000; border: none; border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 12px; }
@@ -460,7 +465,132 @@ var I18n = (function () {
       biggest_day_label: 'Biggest day',
       biggest_single: 'Biggest single spend',
       zero_spend_days: 'Zero-spend days',
-      version: 'Spending Tracker v2.0.0 · offline · device-bound'
+      version: 'Spending Tracker v2.0.0 · offline · device-bound',
+      language: 'Language',
+      lang_english: 'English',
+      lang_arabic: 'العربية'
+    },
+    ar: {
+      app_title: 'الإنفاق',
+      hero_left: 'متبقي اليوم',
+      hero_over: 'تجاوز اليوم',
+      spent_today: 'صُرف اليوم',
+      pace_on_track: 'على المسار',
+      pace_slightly_fast: 'سريع نسبياً',
+      pace_fast: 'صرف سريع',
+      pace_unknown: 'سجّل أكثر لرؤية المعدّل',
+      days_left: 'متبقي {n} يوم',
+      day_left: 'متبقي يوم واحد',
+      cycle_label: 'الدورة: {start} → {end}',
+      today_label: 'اليوم',
+      yesterday_label: 'الأمس',
+      tab_home: 'الرئيسية',
+      tab_history: 'السجل',
+      add_spend: 'إضافة مصروف',
+      edit_spend: 'تعديل المصروف',
+      amount: 'المبلغ',
+      amount_aed: 'المبلغ (درهم)',
+      category: 'الفئة',
+      when: 'متى',
+      today: 'اليوم',
+      yesterday: 'الأمس',
+      pick_date: 'اختر التاريخ',
+      note: 'ملاحظة',
+      note_placeholder: 'مثلاً: غداء مع سام',
+      add_note: '+ إضافة ملاحظة',
+      refund: 'استرداد (يُخصم من المصروف)',
+      exclude_from_pace: 'استثناء من المعدّل',
+      save: 'حفظ',
+      save_and_add: 'حفظ وإضافة مصروف آخر',
+      save_changes: 'حفظ التغييرات',
+      cancel: 'إلغاء',
+      delete: 'حذف',
+      ok: 'موافق',
+      onboarding_title: 'مرحباً بك في متتبع الإنفاق',
+      onboarding_intro: 'خطوتان سريعتان وأنت جاهز.',
+      onboarding_budget: 'ميزانية الدورة (درهم)',
+      onboarding_salary_day: 'يوم الراتب',
+      onboarding_salary_help: 'تبدأ كل دورة من هذا اليوم حتى اليوم السابق لراتب الشهر التالي.',
+      onboarding_seed: 'إنشاء فئات افتراضية',
+      onboarding_seed_help: 'طعام · مواصلات · فواتير · ترفيه · أخرى',
+      get_started: 'لنبدأ',
+      load_sample: 'تحميل بيانات تجريبية',
+      cycle_ended_title: 'انتهت الدورة',
+      cycle_ended_sub: '{start} → {end}. هذا ملخص الدورة قبل بدء التالية.',
+      rollover_total_spent: 'إجمالي المصروف',
+      rollover_under: 'أقل من الميزانية',
+      rollover_over: 'تجاوز الميزانية',
+      rollover_biggest_cat: 'أعلى فئة',
+      rollover_biggest_day: 'أعلى يوم',
+      rollover_avg: 'المعدّل اليومي',
+      rollover_same: 'ابدأ الدورة التالية · نفس الميزانية ({amount})',
+      rollover_diff: 'ابدأ بميزانية مختلفة',
+      rollover_new_budget: 'الميزانية الجديدة (درهم)',
+      settings: 'الإعدادات',
+      cycle: 'الدورة',
+      categories: 'الفئات',
+      display: 'العرض',
+      backup: 'النسخ الاحتياطي',
+      danger_zone: 'منطقة الخطر',
+      cycle_budget: 'الميزانية',
+      cycle_salary: 'يوم الراتب',
+      cycle_current: 'الدورة الحالية',
+      cycle_edit_budget: 'تعديل الميزانية',
+      cycle_edit_salary: 'تعديل يوم الراتب',
+      theme_label: 'المظهر',
+      theme_light: 'فاتح',
+      theme_dark: 'داكن',
+      theme_system: 'تلقائي',
+      currency: 'العملة',
+      salary_day: 'يوم الراتب',
+      export_json: 'تصدير نسخة JSON',
+      import_json: 'استيراد نسخة',
+      export_csv: 'تصدير CSV (لإكسل)',
+      backup_tip: 'نصيحة: صدّر نسخة JSON أسبوعياً واحفظها على OneDrive. هذه شبكة الأمان الوحيدة إذا فقد المتصفح بياناتك.',
+      reset_all: 'إعادة تعيين كل البيانات',
+      reset_action: 'إعادة تعيين',
+      add_category: '+ إضافة فئة',
+      cat_name_label: 'اسم الفئة',
+      cat_icon_label: 'الأيقونة (إيموجي)',
+      cat_color_label: 'اللون',
+      cat_count: '{n} مصاريف',
+      reassign_title: 'إعادة تعيين المصاريف',
+      reassign_help: 'هذه الفئة بها {n} مصاريف. اختر فئة لنقلها إليها قبل الحذف.',
+      reassign_to: 'انقل إلى',
+      confirm_delete_txn_title: 'حذف هذا المصروف؟',
+      confirm_delete_txn_text: '{amount} · {cat}{notePart} — يمكن التراجع خلال ١٠ ثوانٍ.',
+      confirm_replace_data_title: 'استبدال جميع بياناتك؟',
+      confirm_replace_data_text: 'سيتم حفظ نسخة احتياطية تلقائياً. يمكنك التراجع خلال ٣٠ ثانية.',
+      confirm_reset_title: 'إعادة تعيين كل شيء؟',
+      confirm_reset_text: 'سيتم حذف جميع المصاريف والفئات والدورات. يمكنك التراجع خلال ٣٠ ثانية.',
+      confirm_replace_action: 'استبدال',
+      undo: 'تراجع',
+      reload: 'إعادة تحميل',
+      toast_saved: 'تم تسجيل {amount} في {cat} · {left} متبقي اليوم.',
+      toast_deleted: 'تم حذف المصروف · {left} متبقي اليوم.',
+      toast_restored: 'تم استرجاع البيانات.',
+      toast_restore_undone: 'تم التراجع عن الاسترجاع.',
+      toast_reset_done: 'تم إعادة تعيين كل البيانات.',
+      toast_save_failed: 'تعذّر الحفظ — قد تكون الذاكرة ممتلئة.',
+      toast_invalid_backup: 'هذا الملف لا يبدو نسخة احتياطية صالحة.',
+      toast_update_available: 'يوجد إصدار جديد متاح.',
+      banner_recovered: 'تعذّرت قراءة بياناتك؛ بدأنا من جديد.',
+      banner_recovered_action: 'استرجاع من نسخة احتياطية',
+      no_spends_today: 'لا توجد مصاريف اليوم — اضغط + لتسجيل واحد.',
+      empty_history: 'لا توجد أيام سابقة بعد.',
+      no_active_cycle: 'لا توجد دورة نشطة.',
+      readonly_archived: 'للقراءة فقط · مؤرشف',
+      cycle_current_chip: 'الحالية',
+      by_category: 'حسب الفئة',
+      highlights: 'أبرز الأرقام',
+      avg_per_day: 'المعدّل اليومي',
+      biggest_day_label: 'أعلى يوم',
+      biggest_single: 'أكبر مصروف منفرد',
+      zero_spend_days: 'أيام بدون مصاريف',
+      version: 'متتبع الإنفاق إصدار 2.0.0 · يعمل بدون إنترنت · مرتبط بالجهاز',
+      language: 'اللغة',
+      lang_english: 'English',
+      lang_arabic: 'العربية'
     }
   };
 
@@ -1092,7 +1222,9 @@ var Sheet = (function () {
         '<div class="sheet-chrome">' +
           '<span></span>' +
           '<div class="sheet-handle"></div>' +
-          '<button class="sheet-close" data-close aria-label="Close">&times;</button>' +
+          '<button class="sheet-close" data-close aria-label="Close">' +
+            '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+          '</button>' +
         '</div>' +
         '<div class="sheet-body">' +
           opts.contentHTML +
@@ -1548,6 +1680,12 @@ var SettingsSheet = (function () {
       +       '<button class="' + (theme === 'system' ? 'active' : '') + '" data-action="theme" data-theme="system">' + I18n.t('theme_system') + '</button>'
       +     '</div>'
       +   '</div>'
+      +   '<div class="settings-row"><span>' + I18n.t('language') + '</span>'
+      +     '<div class="seg">'
+      +       '<button class="' + ((state.settings.locale || 'en') === 'en' ? 'active' : '') + '" data-action="lang" data-lang="en">' + I18n.t('lang_english') + '</button>'
+      +       '<button class="' + (state.settings.locale === 'ar' ? 'active' : '') + '" data-action="lang" data-lang="ar">' + I18n.t('lang_arabic') + '</button>'
+      +     '</div>'
+      +   '</div>'
       +   '<div class="settings-row"><span>' + I18n.t('currency') + '</span><span class="value">' + Format.escapeHTML(state.settings.currency) + '</span></div>'
       + '</div>'
 
@@ -1667,6 +1805,13 @@ var SettingsSheet = (function () {
         var theme = btn.getAttribute('data-theme');
         state = callbacks.onTheme(theme);
         rerender();
+        return;
+      }
+      if (action === 'lang') {
+        var lang = btn.getAttribute('data-lang');
+        state = callbacks.onLang(lang);
+        // Re-open Settings so the entire sheet re-renders in the new language + new direction
+        open(state, callbacks);
         return;
       }
       if (action === 'export-json') { callbacks.onExportJSON(); return; }
@@ -2302,10 +2447,19 @@ var App = (function () {
     return endY + '-' + String(endM).padStart(2, '0') + '-' + String(endD).padStart(2, '0');
   }
 
+  // ===== Direction (RTL when locale = 'ar') =====
+  function applyDir(locale) {
+    var dir = locale === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.setAttribute('dir', dir);
+    document.documentElement.setAttribute('lang', locale || 'en');
+  }
+
   // ===== Init =====
   function init() {
     var loaded = Store.load(window.localStorage);
     state = Migrate.migrate(loaded.state, _migrateOpts());
+    I18n.setLocale(state.settings.locale || 'en');
+    applyDir(state.settings.locale || 'en');
 
     if (loaded.recovered) {
       setTimeout(function () {
@@ -2588,6 +2742,12 @@ var App = (function () {
       onTheme: function (theme) {
         state = Store.updateSettings(state, { theme: theme });
         _applyTheme(theme);
+        persist(); render(); return state;
+      },
+      onLang: function (lang) {
+        state = Store.updateSettings(state, { locale: lang });
+        I18n.setLocale(lang);
+        applyDir(lang);
         persist(); render(); return state;
       },
       onExportJSON: function () { SettingsSheet.exportJSON(state, todayISO(), nowISO()); },

@@ -84,6 +84,7 @@ input { font: inherit; }
 @keyframes hero-pulse { 0%{transform:scale(1)} 30%{transform:scale(1.04)} 100%{transform:scale(1)} }
 .hero-amount.pulse { animation: hero-pulse 0.35s ease-out; }
 .hero-sub { color: var(--muted); font-size: 14px; margin-top: 10px; }
+.hero-sub-cycle { margin-top: 4px; font-weight: 600; color: var(--text); opacity: 0.85; }
 .chip-row { display: flex; gap: 6px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
 .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--text); font-size: 12px; border: 1px solid var(--border); }
 .chip.good { background: rgba(46,204,113,0.14); color: var(--green); border-color: transparent; }
@@ -2224,6 +2225,8 @@ var HomeView = (function () {
     var spent  = Calc.todaySpent(state, today, cyc.id);
     var limit  = Calc.todayLimit(state, today, cyc.id);
     var daysLeft = Calc.daysLeftIncludingToday(cyc, today);
+    var cycleSpent = Calc.cycleTotalSpent(state, cyc.id);
+    var cycleRemaining = Math.round((cyc.startBudget - cycleSpent) * 100) / 100;
     var paceKey = Calc.pace(state, today, cyc.id);
     var paceLabel = paceKey === 'unknown' ? I18n.t('pace_unknown')
                   : paceKey === 'on-track' ? I18n.t('pace_on_track')
@@ -2259,6 +2262,7 @@ var HomeView = (function () {
       +       '<span class="currency">' + heroCurrency + '</span>' + heroAbs
       +     '</div>'
       +     '<div class="hero-sub">' + I18n.t('spent_today') + ' ' + Format.fmtMoney(spent, state.settings.currency) + ' · of ' + Format.fmtMoney(limit, state.settings.currency) + ' limit</div>'
+      +     '<div class="hero-sub hero-sub-cycle">' + Format.fmtMoney(cycleRemaining, state.settings.currency) + ' left this cycle</div>'
       +     '<div class="chip-row">'
       +       (paceLabel ? '<span class="chip ' + paceClass + '">' + (paceIcon ? paceIcon + ' ' : '') + paceLabel + '</span>' : '')
       +       '<span class="chip">' + daysLabel + '</span>'

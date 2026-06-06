@@ -11,29 +11,31 @@
    Bilingual EN / AR · faithful to the app's real design system
    ============================================================ */
 :root{
-  /* App palette (dark theme — the app's signature look) */
-  --bg:#14171c;
-  --bg-2:#1a1d23;
-  --surface:#262b33;
-  --surface-2:#323843;
-  --surface-3:#3c4250;
-  --text:#f1f3f7;
-  --muted:#a3acbb;
-  --border:#3f4654;
-  --accent:#5ab19a;
-  --accent-2:#7ec9b3;
-  --accent-soft:rgba(90,177,154,0.16);
-  --green:#2ecc71;
-  --amber:#f5a623;
+  /* Light palette — clean, high-contrast, easy on the eyes */
+  --bg:#f4f6fa;
+  --bg-2:#ffffff;
+  --surface:#ffffff;
+  --surface-2:#f4f6fa;
+  --surface-3:#e9edf3;
+  --text:#16202e;
+  --muted:#5b6675;
+  --border:#e3e8ef;
+  --accent:#2e9d84;
+  --accent-2:#1f7a66;
+  --accent-soft:rgba(46,157,132,0.12);
+  --green:#1aa45a;
+  --amber:#d98a12;
   --red:#e74c3c;
-  --blue:#5aa0e6;
-  --purple:#9b8cf0;
+  --blue:#3f8fd6;
+  --purple:#7a6bd6;
+  --bezel:linear-gradient(160deg,#e8ebf1,#cfd6e0);
+  --input-bg:#f4f6fa;
   --radius:18px;
   --radius-sm:12px;
   --pill:999px;
   --maxw:1180px;
-  --shadow-lg:0 30px 80px rgba(0,0,0,0.55);
-  --shadow-md:0 12px 36px rgba(0,0,0,0.38);
+  --shadow-lg:0 24px 64px rgba(31,42,58,0.16);
+  --shadow-md:0 10px 30px rgba(31,42,58,0.10);
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
 }
 html[dir="rtl"]{
@@ -57,17 +59,17 @@ a{color:inherit;text-decoration:none}
 body::before{
   content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:
-    radial-gradient(60% 50% at 80% 0%, rgba(90,177,154,0.16), transparent 70%),
-    radial-gradient(50% 40% at 0% 20%, rgba(90,160,230,0.10), transparent 70%),
-    linear-gradient(180deg,#14171c, #101216 60%, #0e1014);
+    radial-gradient(60% 50% at 80% 0%, rgba(46,157,132,0.10), transparent 70%),
+    radial-gradient(50% 40% at 0% 20%, rgba(63,143,214,0.08), transparent 70%),
+    linear-gradient(180deg,#f7f9fc, #f1f4f9 60%, #eef1f7);
 }
 
 /* ============ NAV ============ */
 nav{
   position:sticky;top:0;z-index:50;
   backdrop-filter:saturate(160%) blur(14px);
-  background:rgba(20,23,28,0.72);
-  border-bottom:1px solid rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.78);
+  border-bottom:1px solid var(--border);
 }
 nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
 .brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:17px;letter-spacing:-0.01em}
@@ -129,17 +131,17 @@ h1.hero-h .grad{
 /* ============ PHONE MOCKUP ============ */
 .phone{
   width:300px;border-radius:46px;padding:13px;margin-inline:auto;
-  background:linear-gradient(160deg,#2a3039,#191c22);
-  box-shadow:var(--shadow-lg), inset 0 0 0 1px rgba(255,255,255,0.05);
+  background:var(--bezel);
+  box-shadow:var(--shadow-lg), inset 0 0 0 1px rgba(255,255,255,0.6);
   position:relative;
 }
 .phone::after{ /* side button */
   content:"";position:absolute;inset-inline-end:-3px;top:130px;width:3px;height:54px;
-  background:#3a414c;border-radius:4px;
+  background:#b7bfca;border-radius:4px;
 }
 .phone-notch{
   position:absolute;top:24px;left:50%;transform:translateX(-50%);
-  width:120px;height:26px;background:#0d0f12;border-radius:var(--pill);z-index:6;
+  width:120px;height:26px;background:#1c2430;border-radius:var(--pill);z-index:6;
 }
 .screen{
   background:var(--bg-2);border-radius:34px;overflow:hidden;
@@ -181,7 +183,7 @@ h1.hero-h .grad{
 .tabbar .tab{flex:1;text-align:center;padding:11px 0 14px;font-size:10.5px;color:var(--muted)}
 .tabbar .tab.on{color:var(--accent)}
 .tabbar .tab .i{font-size:18px;display:block;margin-bottom:2px}
-.fab{position:absolute;inset-inline-end:18px;bottom:78px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:26px;font-weight:300;box-shadow:0 10px 26px rgba(0,0,0,0.45);z-index:5}
+.fab{position:absolute;inset-inline-end:18px;bottom:78px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:26px;font-weight:300;box-shadow:0 10px 24px rgba(46,157,132,0.4);z-index:5}
 
 /* History / highlights mockup */
 .cstrip{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px}
@@ -201,13 +203,13 @@ h1.hero-h .grad{
 .card .hd{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 
 /* Add-spend sheet mockup */
-.sheet-mock{position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end}
+.sheet-mock{position:absolute;inset:0;background:rgba(22,32,46,0.28);display:flex;align-items:flex-end}
 .sheet{background:var(--surface);width:100%;border-top-left-radius:24px;border-top-right-radius:24px;padding:14px 18px 22px;animation:none}
 .handle{width:36px;height:4px;background:var(--surface-3);border-radius:2px;margin:0 auto 14px}
 .sheet h3{font-size:16px;margin-bottom:14px}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px}
-.input{width:100%;background:#2d333d;border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font:inherit}
+.input{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font:inherit}
 .input.big{font-size:30px;font-weight:800;text-align:center}
 .catpick{display:flex;gap:6px;overflow:hidden}
 .catchip{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:var(--pill);background:var(--surface-2);border:1px solid var(--border);font-size:12px;white-space:nowrap}

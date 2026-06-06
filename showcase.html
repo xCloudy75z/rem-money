@@ -67,6 +67,7 @@ body::before{
 /* ============ NAV ============ */
 nav{
   position:sticky;top:0;z-index:50;
+  padding-top:env(safe-area-inset-top); /* clear the iOS status bar / notch */
   backdrop-filter:saturate(160%) blur(14px);
   background:rgba(255,255,255,0.78);
   border-bottom:1px solid var(--border);

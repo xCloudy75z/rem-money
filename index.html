@@ -85,6 +85,16 @@ input { font: inherit; }
 .hero-amount.pulse { animation: hero-pulse 0.35s ease-out; }
 .hero-sub { color: var(--muted); font-size: 14px; margin-top: 10px; }
 .hero-sub-cycle { margin-top: 4px; font-weight: 600; color: var(--text); opacity: 0.85; }
+.cycle-strip { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 6px; }
+.cycle-strip-row { display: flex; justify-content: space-between; align-items: baseline; }
+.cycle-strip-lbl { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.cycle-strip-val { font-size: 20px; font-weight: 700; margin-top: 2px; }
+.cycle-strip-val.left { color: var(--green); }
+.cycle-strip-val.over { color: var(--red); }
+.cycle-strip-bar { height: 6px; border-radius: 3px; background: var(--surface-2); margin-top: 10px; overflow: hidden; }
+.cycle-strip-bar > div { height: 100%; background: var(--accent); transition: width 0.3s ease; }
+.cycle-strip-bar > div.over { background: var(--red); }
+.cycle-strip-sub { color: var(--muted); font-size: 12px; margin-top: 6px; display: flex; justify-content: space-between; }
 .chip-row { display: flex; gap: 6px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
 .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--text); font-size: 12px; border: 1px solid var(--border); }
 .chip.good { background: rgba(46,204,113,0.14); color: var(--green); border-color: transparent; }
@@ -413,6 +423,10 @@ var I18n = (function () {
       cycle_ended_title: 'Cycle ended',
       cycle_ended_sub: '{start} → {end}. Here\'s the summary before we roll forward.',
       rollover_total_spent: 'Total spent',
+      cycle_spent_label: 'Spent',
+      cycle_left_label: 'Left',
+      cycle_of_budget: 'of {amount} budget',
+      cycle_pct_used: '{pct}% used',
       rollover_under: 'Under budget',
       rollover_over: 'Over budget',
       rollover_biggest_cat: 'Biggest category',
@@ -525,6 +539,10 @@ var I18n = (function () {
       cycle_ended_title: 'انتهت الدورة',
       cycle_ended_sub: '{start} → {end}. هذا ملخص الدورة قبل بدء التالية.',
       rollover_total_spent: 'إجمالي المصروف',
+      cycle_spent_label: 'المصروف',
+      cycle_left_label: 'المتبقي',
+      cycle_of_budget: 'من ميزانية {amount}',
+      cycle_pct_used: 'استُخدم {pct}%',
       rollover_under: 'أقل من الميزانية',
       rollover_over: 'تجاوز الميزانية',
       rollover_biggest_cat: 'أعلى فئة',
@@ -2314,6 +2332,32 @@ var HistoryView = (function () {
     var summaryHTML = '';
     if (viewing.id !== activeId) {
       summaryHTML = PastCycleView.render(state, viewing);
+    } else {
+      var currency = state.settings.currency;
+      var spent = Calc.cycleTotalSpent(state, viewing.id);
+      var leftAmt = Math.round((viewing.startBudget - spent) * 100) / 100;
+      var pctRaw = viewing.startBudget > 0 ? (spent / viewing.startBudget) * 100 : 0;
+      var pctDisplay = Math.round(pctRaw * 10) / 10;
+      var barPct = Math.max(0, Math.min(100, pctRaw));
+      var over = leftAmt < 0;
+      summaryHTML = ''
+        + '<div class="cycle-strip">'
+        +   '<div class="cycle-strip-row">'
+        +     '<div>'
+        +       '<div class="cycle-strip-lbl">' + I18n.t('cycle_spent_label') + '</div>'
+        +       '<div class="cycle-strip-val">' + Format.fmtMoney(spent, currency) + '</div>'
+        +     '</div>'
+        +     '<div style="text-align:end">'
+        +       '<div class="cycle-strip-lbl">' + I18n.t('cycle_left_label') + '</div>'
+        +       '<div class="cycle-strip-val ' + (over ? 'over' : 'left') + '">' + (over ? '−' : '') + Format.fmtMoney(Math.abs(leftAmt), currency) + '</div>'
+        +     '</div>'
+        +   '</div>'
+        +   '<div class="cycle-strip-bar"><div class="' + (over ? 'over' : '') + '" style="width:' + barPct + '%"></div></div>'
+        +   '<div class="cycle-strip-sub">'
+        +     '<span>' + I18n.t('cycle_of_budget', { amount: Format.fmtMoney(viewing.startBudget, currency) }) + '</span>'
+        +     '<span>' + I18n.t('cycle_pct_used', { pct: pctDisplay }) + '</span>'
+        +   '</div>'
+        + '</div>';
     }
 
     // Group txns by day

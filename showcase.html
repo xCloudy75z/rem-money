@@ -290,10 +290,9 @@ section{padding:80px 0}
 footer{border-top:1px solid rgba(255,255,255,0.06);padding:40px 0;color:var(--muted);font-size:13.5px}
 footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
 
-/* Reveal on scroll */
-.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
-.reveal.in{opacity:1;transform:none}
-@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+/* .reveal: kept as a no-op for markup compatibility. Content is ALWAYS
+   visible — no JS, no scroll, no observer required. Reliability over flourish. */
+.reveal{opacity:1;transform:none}
 
 /* RTL tweaks */
 html[dir="rtl"] .phone::after{transform:scaleX(-1)}
@@ -718,12 +717,6 @@ function setLang(lang){
   document.getElementById('btn-ar').classList.toggle('on', lang === 'ar');
   try{ localStorage.setItem('showcase-lang', lang); }catch(e){}
 }
-
-/* Scroll reveal */
-var io = new IntersectionObserver(function(entries){
-  entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
-}, { threshold:0.12 });
-document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
 
 /* Init language (remember choice) */
 (function(){

@@ -31,6 +31,8 @@ Notable changes to Spending Tracker 2.0. Newest first.
 - Added `.gitattributes` (normalize line endings) and removed the obsolete `netlify.toml`.
 - CI actions pinned to `checkout@v5` / `setup-node@v5` with `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`
   to clear the Node 20 runner deprecation.
+- CI skips deploys for doc-only pushes (`paths-ignore: ['**/*.md', 'docs/**']`); a code change still
+  deploys, and `gh workflow run` forces one manually.
 
 ### Security
 - Redacted and **revoked** live tokens (GitHub classic PAT, Netlify PAT, a fine-grained PAT) that had

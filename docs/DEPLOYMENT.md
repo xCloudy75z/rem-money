@@ -29,6 +29,11 @@ git push to main
 
 If tests or lint fail, **the deploy is skipped** — a broken build never reaches production.
 
+**Doc-only pushes don't deploy.** The workflow has `paths-ignore: ['**/*.md', 'docs/**']`, so a push
+that touches only documentation won't rebuild the site (docs aren't served). A commit that also changes
+code still deploys. To force a deploy without a code change (e.g. after editing the workflow), use the
+manual run: `gh workflow run "Build & Deploy to GitHub Pages"` or the Actions tab → Run workflow.
+
 ## One-time setup (already done — recorded for future machines)
 
 - **Tools:** `git` and `gh` (GitHub CLI), installed via `winget install Git.Git` / `winget install GitHub.cli`.

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Icon Generator · Spending Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Cormorant+Garamond:ital,wght@1,500&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f4efe5;
+    --ink: #18181b;
+    --rule: #c8bfae;
+    --hush: #6b6359;
+    --accent: #5ab19a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'Cormorant Garamond', Georgia, serif; padding: 64px 32px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 56px; font-weight: 500; font-style: italic; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .meta { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--hush); margin-bottom: 32px; }
+  p { font-size: 17px; line-height: 1.55; }
+  ol { font-size: 16px; line-height: 1.65; }
+  ol li { margin-bottom: 8px; }
+  code { background: rgba(0,0,0,0.06); padding: 1px 6px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+  .preview { background: rgba(0,0,0,0.04); border: 1px solid var(--rule); border-radius: 4px; padding: 32px; display: flex; gap: 32px; align-items: center; justify-content: center; margin: 24px 0; }
+  .preview .icon { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  button { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 500; font-size: 22px; padding: 18px 36px; background: var(--ink); color: var(--paper); border: none; border-radius: 4px; cursor: pointer; letter-spacing: 0.02em; }
+  button:hover { background: var(--accent); }
+  button:disabled { opacity: 0.5; cursor: wait; }
+  .log { font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: rgba(0,0,0,0.04); padding: 16px; border-radius: 4px; margin-top: 16px; line-height: 1.7; max-height: 240px; overflow-y: auto; }
+  .log .ok { color: #166534; }
+  .log .err { color: #991b1b; }
+  .canvases { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Icon Generator.</h1>
+  <p class="meta">Spending Tracker · One-click PNG export</p>
+
+  <p>
+    Renders the chosen logo (Amiri dirham on cream paper, accent rule) at the
+    four sizes iOS &amp; Android home screens actually need, then downloads them as PNGs.
+    Run this once after any logo edit.
+  </p>
+
+  <div class="preview" id="preview">
+    <span class="icon" style="display:inline-flex;width:180px;height:180px;border-radius:40px;overflow:hidden">
+      <svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" width="180" height="180">
+        <rect width="192" height="192" rx="42" fill="#f3eee0"/>
+        <text x="96" y="135" font-family="'Amiri','Traditional Arabic',serif" font-size="108" font-weight="700" fill="#1a1d23" text-anchor="middle" direction="rtl">د.إ</text>
+        <line x1="60" y1="155" x2="132" y2="155" stroke="#5ab19a" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="icon" style="display:inline-flex;width:120px;height:120px;border-radius:28px;overflow:hidden">
+      <svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+        <rect width="192" height="192" rx="42" fill="#f3eee0"/>
+        <text x="96" y="135" font-family="'Amiri','Traditional Arabic',serif" font-size="108" font-weight="700" fill="#1a1d23" text-anchor="middle" direction="rtl">د.إ</text>
+        <line x1="60" y1="155" x2="132" y2="155" stroke="#5ab19a" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="icon" style="display:inline-flex;width:60px;height:60px;border-radius:14px;overflow:hidden">
+      <svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" width="60" height="60">
+        <rect width="192" height="192" rx="42" fill="#f3eee0"/>
+        <text x="96" y="135" font-family="'Amiri','Traditional Arabic',serif" font-size="108" font-weight="700" fill="#1a1d23" text-anchor="middle" direction="rtl">د.إ</text>
+        <line x1="60" y1="155" x2="132" y2="155" stroke="#5ab19a" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </span>
+  </div>
+
+  <p>
+    <button id="go">Generate &amp; download the four PNGs</button>
+  </p>
+
+  <ol>
+    <li>Click the button above. Wait ~2 seconds (waits for the Amiri font to load).</li>
+    <li>Your browser will download <strong>four files</strong> in quick succession. If asked to "Allow multiple downloads," click Allow.</li>
+    <li>Move all four into <code>v2/icons/</code> (the folder next to <code>icon.svg</code>).</li>
+    <li>Back in the terminal: <code>npm run build</code>. The icons are now in <code>dist/icons/</code> and referenced by the manifest.</li>
+    <li>Re-drag the <code>dist/</code> folder onto Netlify Drop. Reinstall on phone — icon should show, not white.</li>
+  </ol>
+
+  <div class="log" id="log">Ready.</div>
+
+  <div class="canvases">
+    <canvas id="c180" width="180" height="180"></canvas>
+    <canvas id="c192" width="192" height="192"></canvas>
+    <canvas id="c512" width="512" height="512"></canvas>
+    <canvas id="c512m" width="512" height="512"></canvas>
+  </div>
+</div>
+
+<script>
+const SVG_BASE = (size, maskablePadding) => {
+  // maskablePadding: when generating the maskable icon we add empty space around so platforms
+  // can crop into a circle without clipping the glyph (Android adaptive icons).
+  const pad = maskablePadding || 0;
+  const innerSize = 192;
+  const drawnSize = innerSize - pad * 2;
+  const tx = pad;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="${size}" height="${size}">
+    <rect width="192" height="192" rx="${maskablePadding ? 0 : 42}" fill="#f3eee0"/>
+    <g transform="translate(${tx},${tx}) scale(${drawnSize / innerSize})">
+      <text x="96" y="135" font-family="Amiri, 'Traditional Arabic', serif" font-size="108" font-weight="700" fill="#1a1d23" text-anchor="middle" direction="rtl">د.إ</text>
+      <line x1="60" y1="155" x2="132" y2="155" stroke="#5ab19a" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+  </svg>`;
+};
+
+const TARGETS = [
+  { name: 'apple-touch-icon-180.png', size: 180, canvas: 'c180', maskable: false },
+  { name: 'icon-192.png',             size: 192, canvas: 'c192', maskable: false },
+  { name: 'icon-512.png',             size: 512, canvas: 'c512', maskable: false },
+  { name: 'icon-512-maskable.png',    size: 512, canvas: 'c512m', maskable: true  }
+];
+
+const logEl = document.getElementById('log');
+function log(msg, cls) {
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function renderToCanvas(svgText, canvas, size) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+    img.src = url;
+  });
+}
+
+function downloadCanvas(canvas, filename) {
+  return new Promise(resolve => {
+    canvas.toBlob(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      resolve();
+    }, 'image/png');
+  });
+}
+
+async function generateAll() {
+  const btn = document.getElementById('go');
+  btn.disabled = true;
+  logEl.innerHTML = '';
+  log('Waiting for Amiri font to load…');
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    log('Font ready. Rendering…', 'ok');
+    for (const t of TARGETS) {
+      const svg = SVG_BASE(t.size, t.maskable ? Math.round(t.size * 0.1) : 0);
+      const canvas = document.getElementById(t.canvas);
+      await renderToCanvas(svg, canvas, t.size);
+      log('Rendered ' + t.name + ' (' + t.size + '×' + t.size + ')');
+    }
+    log('Downloading…', 'ok');
+    for (const t of TARGETS) {
+      const canvas = document.getElementById(t.canvas);
+      await downloadCanvas(canvas, t.name);
+      log('Saved ' + t.name, 'ok');
+      await new Promise(r => setTimeout(r, 150)); // breathing room for browser
+    }
+    log('All four PNGs downloaded. Move them into v2/icons/ then npm run build.', 'ok');
+  } catch (e) {
+    log('Error: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('go').addEventListener('click', generateAll);
+</script>
+</body>
+</html>

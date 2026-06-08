@@ -1,0 +1,15 @@
+{
+  "app": "daily-spending-tracker",
+  "version": 1,
+  "exportedAt": "2026-05-30T10:30:00.000Z",
+  "state": {
+    "startBudget": 12454.70,
+    "startDate": "2026-05-28",
+    "endDate": "2026-06-25",
+    "transactions": [
+      { "id": "x-abc-1", "datetime": "2026-05-29T14:32:00.000Z", "amount": 35.00, "note": "Lunch" },
+      { "id": "x-def-2", "datetime": "2026-05-29T19:00:00.000Z", "amount": 120.00, "note": "Fuel" },
+      { "id": "x-ghi-3", "datetime": "2026-05-30T11:15:00.000Z", "amount": 22.50, "note": "قهوة" }
+    ]
+  }
+}

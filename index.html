@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spending Tracker</title>
+<meta name="theme-color" content="#262b33" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3eee0" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spending">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- iOS home-screen icon. PNG is required — SVG renders as white square on iOS Safari. -->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
+<!-- SVG kept as a graceful fallback for browsers that prefer it -->
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<script>
+  // FOUC prevention: apply cached theme before first paint
+  try {
+    var t = localStorage.getItem('spending-tracker:theme-cache') || 'system';
+    if (t === 'system') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+</script>
+<!-- STYLES:START -->
+<link rel="stylesheet" href="src/styles/main.css">
+<!-- STYLES:END -->
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<!-- MODULES:START -->
+<script src="src/format.js"></script>
+<script src="src/i18n.js"></script>
+<script src="src/seed.js"></script>
+<script src="src/validate.js"></script>
+<script src="src/migrate.js"></script>
+<script src="src/calc.js"></script>
+<script src="src/store.js"></script>
+<script src="src/components/sheet.js"></script>
+<script src="src/components/toast.js"></script>
+<script src="src/components/confirmDialog.js"></script>
+<script src="src/components/entrySheet.js"></script>
+<script src="src/components/editSheet.js"></script>
+<script src="src/components/settingsSheet.js"></script>
+<script src="src/components/onboardingSheet.js"></script>
+<script src="src/components/cycleRolloverSheet.js"></script>
+<script src="src/components/reassignSheet.js"></script>
+<script src="src/components/editValueSheet.js"></script>
+<script src="src/components/categorySheet.js"></script>
+<script src="src/views/pastCycle.js"></script>
+<script src="src/views/home.js"></script>
+<script src="src/views/history.js"></script>
+<script src="src/views/landing.js"></script>
+<script src="src/app.js"></script>
+<!-- MODULES:END -->
+</body>
+</html>

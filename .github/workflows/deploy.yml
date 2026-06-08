@@ -3,6 +3,11 @@ name: Build & Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # Docs don't affect the built site — skip deploys for doc-only pushes.
+    # (A commit that also touches code still deploys; use the manual run below to force one.)
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
   workflow_dispatch:
 
 # Allow the workflow to publish to Pages

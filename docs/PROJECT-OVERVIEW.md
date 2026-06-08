@@ -43,7 +43,7 @@ This makes the pure modules **deterministic** — tests pin the math forever, ti
 See `docs/superpowers/specs/07-product-specification.md` §Data Architecture. Summary:
 
 - `schemaVersion: 1` inside the payload (migrate() handles future bumps)
-- `settings` — currency, salaryDay (1–28), theme, activeCycleId, locale, lastUsedCategoryId
+- `settings` — currency, salaryDay (1–28), theme, activeCycleId, locale, lastUsedCategoryId, `localTimestamps` (true once the UTC→local timestamp migration has run)
 - `categories: {id → {name, icon, color, order, isArchived, createdAt}}`
 - `cycles: {id → {startDate, endDate, startBudget, archivedAt, createdAt}}`
 - `transactions: {id → {cycleId, categoryId, date, amount, isRefund, isExcludedFromPace, note, createdAt, updatedAt}}`
@@ -63,29 +63,41 @@ aedLeftToday = todayLimit − spentToday
 
 **Locked decision (2026-05-30):** today IS counted in the divisor. Day 1 of a 31-day cycle with budget 12,454.70 = 401.76 AED/day.
 
+## Time & timezones (locked 2026-06-08)
+
+Every ISO string in the data is treated as **literal local wall-clock**, never UTC:
+
+- `app.js` `nowISO()` / `todayISO()` build strings from **local** `Date` components (the trailing `Z` is cosmetic — it is *not* a UTC instant).
+- Pure modules (`format.fmtTime`, etc.) read `HH:MM`/`YYYY-MM-DD` verbatim out of the string — no timezone conversion.
+- This is internally consistent: a spend logged at 2 PM shows `14:00` and groups under the local day, regardless of the device's offset.
+
+**The original bug (fixed 2026-06-08):** `nowISO()` used `toISOString()` (UTC), so in UTC+4 every recorded time displayed 4 h behind. Fix = stamp local components + a one-time migration (`Migrate.localizeTimestamps`, driven by the injected `App.localizeISO`) that converts pre-existing UTC `createdAt`/`updatedAt` to local. The migration is gated by `settings.localTimestamps` so it runs exactly once and never double-shifts already-local entries. See [CHANGELOG.md](CHANGELOG.md).
+
 ## Build & deploy
 
 ```
 src/*.js + src/styles/main.css
   → scripts/build.js (inline everything between <!-- MODULES:START --> markers)
-  → dist/index.html (single file, ~109 KB)
-  + dist/sw.js (separate, ~2 KB)
-  → drag dist/ folder to https://app.netlify.com/drop
+  → dist/index.html (single file, ~130 KB)
+  + dist/sw.js (separate, ~2 KB) + icons/ + manifest.webmanifest
+  → git push → GitHub Actions builds + publishes dist/ to GitHub Pages
 ```
 
-Netlify serves both files; service worker registers on first visit; second visit is offline-capable.
+This `v2/` folder **is** the GitHub repo (`xCloudy75z/rem-money`); `dist/` is a build artifact (gitignored).
+`git push` to `main` triggers `.github/workflows/deploy.yml` (test → lint → build → deploy).
+Live at https://xcloudy75z.github.io/rem-money/. Service worker registers on first visit; second visit is offline-capable. Full details in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Test posture
 
 ```
-npm test           # node --test, 150+ tests, no deps
+npm test           # node --test, 156 tests, no deps
 npm run lint:pure  # forbids new Date / Math.random in pure modules
 ```
 
 Coverage:
 - `tests/store.test.js` — storage contracts, immutable mutators
 - `tests/calc.test.js` — rolling-limit math, pace, historical reconstruction, summaries
-- `tests/migrate.test.js` — v0→v1 migration, real fixture from legacy app
+- `tests/migrate.test.js` — v0→v1 migration, real fixture from legacy app, UTC→local timestamp localization (runs once, flag-gated, no double-shift)
 - `tests/validate.test.js` — FK integrity, unique names, cycle non-overlap
 - `tests/seed.test.js` — default categories + cycle factory
 - `tests/format.test.js` — money / date / escapeHTML / parseAmount

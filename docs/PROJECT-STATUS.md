@@ -1,10 +1,13 @@
 # Project Status — Spending Tracker 2.0
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-06-08
 
-## V1 status: ✅ SHIPPED
+## V1 status: ✅ SHIPPED & DEPLOYED
 
-All 8 layers complete. 152/152 tests green. Lint clean. Built artifact: 109 KB inlined HTML + 2 KB service worker.
+All 8 layers complete. 156/156 tests green. Lint clean. Built artifact: ~130 KB inlined HTML + 2 KB service worker.
+
+**Live:** https://xcloudy75z.github.io/rem-money/ — auto-deployed by CI on every push to `main`.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHANGELOG.md) for recent changes.
 
 ## Layer-by-layer
 
@@ -22,14 +25,17 @@ All 8 layers complete. 152/152 tests green. Lint clean. Built artifact: 109 KB i
 
 ## Deploy state
 
-- **Production URL:** *(not yet deployed — see HANDOVER.md for cutover steps)*
-- **Build artifact:** `dist/index.html` (109.3 KB) + `dist/sw.js` (2.0 KB)
+- **Production URL:** https://xcloudy75z.github.io/rem-money/ (GitHub Pages)
+- **Repo:** https://github.com/xCloudy75z/rem-money — this `v2/` folder **is** the repo root.
+- **Pipeline:** push to `main` → GitHub Actions (`.github/workflows/deploy.yml`) runs test + lint + build, publishes `dist/` to Pages. Pages source = "GitHub Actions".
+- **Build artifact:** `dist/index.html` (~130 KB) + `dist/sw.js` (2.0 KB) — built by CI, **not** committed (gitignored).
 - **Local dev URL:** http://localhost:5173 (via `npm run dev`)
 
 ## Open items (V2 / deferred — not blocking V1 ship)
 
 | ID | Item | Notes |
 |---|---|---|
+| infra | Pages actions on Node 20 | Forced to Node 24 via env var; will self-resolve when GitHub ships Node 24 builds of configure-pages/deploy-pages (or by June 2026 default) |
 | V1 | Arabic UI | Harness in place (STRINGS.ar stub, RTL-ready CSS) |
 | V2 | Per-category soft budgets | Schema-additive |
 | V3 | Trend chart / sparkline | Pure SVG, no library |
@@ -51,3 +57,6 @@ All 8 layers complete. 152/152 tests green. Lint clean. Built artifact: 109 KB i
 | Desktop chrome | Phone-frame at ≥900px viewport | 2026-05-30 |
 | Backup envelope | `{app, schemaVersion, exportedAt, state}` | 2026-05-30 |
 | Restore safety | Auto-snapshot to `lastAutoBackup` + 30s UNDO | 2026-05-30 |
+| Timestamps stored as **local wall-clock** ISO (not UTC) | `createdAt`/`updatedAt` use local time so displayed times match the device clock | 2026-06-08 |
+| One-time UTC→local migration, gated by `settings.localTimestamps` | Converts pre-existing UTC timestamps once, never double-shifts | 2026-06-08 |
+| Deploy via GitHub Pages CI (dropped Netlify) | `git push` → Actions build + deploy | 2026-06-08 |

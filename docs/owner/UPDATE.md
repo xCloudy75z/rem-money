@@ -4,7 +4,9 @@
 
 ## What you need to know
 
-When I push a new version of Spending Tracker to your Netlify URL:
+The app lives at **https://xcloudy75z.github.io/rem-money/** (GitHub Pages). New versions deploy automatically when a change is pushed — there's a build step that runs the tests first, so a broken build never reaches you.
+
+When a new version of Spending Tracker goes live:
 
 1. **Your transactions stay.** They're stored in your phone's browser storage (`localStorage`), not on the website. Updating the website doesn't touch your phone.
 2. **You'll see a small "A new version is available · Reload" toast** the next time you open the app. Tap Reload to get the new version. Or ignore it — the old version keeps working.
@@ -29,12 +31,12 @@ It takes 10 seconds. Do it on the 1st of every month at the same time you check 
 | Thing | Where | What happens if site goes down? |
 |---|---|---|
 | Your transactions | Your phone's browser | Nothing — they're not on the site |
-| The app code | Netlify (the website) | Site has a downtime, but you can still open the installed app icon if it cached |
+| The app code | GitHub Pages (the website) | Site has a downtime, but you can still open the installed app icon if it cached |
 | Your backup JSON file | Wherever you saved it (OneDrive etc.) | It's a normal file. Open it in any text editor. |
 
 ## If you need to roll back
 
-Tell me which version was last good. I keep the previous build in `dist/` history. I can redeploy it in 60 seconds.
+Tell me which version was last good. Every version is a commit in git history, so I can revert and re-push — it redeploys automatically in about 2 minutes.
 
 ## Questions
 

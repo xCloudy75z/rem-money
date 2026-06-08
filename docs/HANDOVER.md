@@ -4,63 +4,43 @@ For future-me, future-Claude, or any engineer picking this up.
 
 ## What this is
 
-Single-user offline-first PWA for tracking daily spending against a fixed cycle budget. Rebuilt from a legacy single-file `tracker.html` (still in `Desktop/Spending Tracker/`) into a tested, modular, properly-architected version (`Desktop/Spending Tracker/v2/`).
+Single-user offline-first PWA for tracking daily spending against a fixed cycle budget. Rebuilt from a legacy single-file app into this tested, modular version, which is now **deployed and live** at https://xcloudy75z.github.io/rem-money/.
+
+> **Note:** This `v2/` folder is the source of truth and the git repo (`xCloudy75z/rem-money`). Anything outside `v2/` on the Desktop (the old root HTML files, `rebuild/`, root `docs/`) is **legacy** and not part of the repo or the deployment.
 
 Read first:
 - `docs/PROJECT-OVERVIEW.md` — architecture map
 - `docs/PROJECT-STATUS.md` — current state, what's done, what's next
+- `docs/DEPLOYMENT.md` — how deploys work (`git push` → CI → Pages)
+- `docs/CHANGELOG.md` — what changed and when
 - `docs/owner/HOWTO.md` — how the user uses the app
 
 ## How to ship a change
 
 ```
 cd "C:\Users\games\Desktop\Spending Tracker\v2"
-npm test                   # all 152 tests must pass
-npm run lint:pure          # pure modules must stay clean
+npm test                   # all 156 tests must pass (CI runs this too)
+npm run lint:pure          # pure modules must stay clean (CI runs this too)
 git push                   # CI (.github/workflows/deploy.yml) tests, lints,
                            # builds, and deploys dist/ to GitHub Pages.
 #   Repo: https://github.com/xCloudy75z/rem-money (this v2/ folder IS the repo)
 #   Pages source = "GitHub Actions". Don't commit dist/ (gitignored; CI builds it).
 ```
 
+Running `npm test`/`lint:pure` locally is optional (CI is the gate) but faster to catch failures.
+Full pipeline, watching runs, and rollback: **`docs/DEPLOYMENT.md`**.
+
 Before any non-trivial change:
-1. Read `07-product-specification.md` (in `Desktop/Spending Tracker/rebuild/`) for locked decisions
+1. Check **locked decisions** in `docs/PROJECT-STATUS.md` (the legacy `rebuild/07-product-specification.md` outside `v2/` has the original long-form spec, if it still exists)
 2. Write a failing test first if the change touches `calc.js`, `store.js`, `migrate.js`, `validate.js`, or `format.js`
 3. Run `npm run lint:pure` after editing any pure module
 
-## Deploy this for the first time (cutover from legacy)
+## Deployment status: ✅ live
 
-The user is currently using `Desktop/Spending Tracker/tracker.html` on a Netlify URL (the v1 deploy). To cut over:
-
-1. **Build v2**
-   ```
-   cd "C:\Users\games\Desktop\Spending Tracker\v2"
-   npm run build
-   ```
-
-2. **Get a new Netlify URL** (don't overwrite the v1 URL yet)
-   - Drag `v2/dist/` onto https://app.netlify.com/drop
-   - Pick a memorable subdomain like `spending-tracker-v2.netlify.app`
-   - Save the URL
-
-3. **User exports their v1 data**
-   - User opens the existing v1 app on their phone
-   - Settings → Backup (JSON) → save the file to OneDrive
-
-4. **User opens the v2 URL on their phone**
-   - Landing page appears
-   - Tap "Start tracking →"
-   - Onboard with any temp budget (this just creates a placeholder cycle)
-   - Then: Settings → Backup → **Import backup** → pick the saved JSON
-   - Confirm — v0 schema migrates to v1 automatically; all txns appear under "Other" category
-   - User can recategorise transactions over the next few days
-
-5. **User installs v2 as a PWA**
-   - iPhone: Share → Add to Home Screen
-   - Android: ⋮ menu → Install app
-   - The old v1 icon can stay on the home screen as backup for 30 days
-
-6. **After 30 days of confirmed working v2**, remove the v1 Netlify site
+Cutover is complete — v2 is deployed at https://xcloudy75z.github.io/rem-money/ and deploys
+automatically on push. The historical first-time Netlify cutover steps have been removed; the
+current model is documented in `docs/DEPLOYMENT.md`. Migrating data from the old single-file app
+still works via Settings → Backup → **Import backup** (the v0→v1 migration runs automatically).
 
 ## Why some things are the way they are
 

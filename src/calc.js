@@ -189,6 +189,36 @@ var Calc = (function () {
     return { total: total, avgDaily: avgDaily, biggestDay: biggestDay, biggestTxn: biggestTxn, topCategories: topCategories };
   }
 
+  // ---- Credit / liability overlay (global, across ALL cycles) ----
+  // A credit spend still counts toward its cycle budget like any other spend;
+  // this is a separate running tally of what is still owed. Refunds tagged as
+  // credit reduce the owed amount (signed). Settled items drop out of the total.
+  function liabilitySummary(state) {
+    var items = [];
+    var paidItems = [];
+    var outstanding = 0;
+    for (var tid in state.transactions) {
+      var t = state.transactions[tid];
+      if (!t || !t.isCredit) continue;
+      if (t.liabilitySettled) { paidItems.push(t); }
+      else { items.push(t); outstanding += txnSignedAmount(t); }
+    }
+    function _byDateDesc(a, b) {
+      return (b.date || '').localeCompare(a.date || '')
+        || (b.createdAt || '').localeCompare(a.createdAt || '');
+    }
+    items.sort(_byDateDesc);
+    paidItems.sort(function (a, b) {
+      return (b.settledAt || '').localeCompare(a.settledAt || '') || _byDateDesc(a, b);
+    });
+    return {
+      outstanding: Math.round(outstanding * 100) / 100,
+      unpaidCount: items.length,
+      items: items,
+      paidItems: paidItems
+    };
+  }
+
   return {
     daysBetweenInclusive: daysBetweenInclusive,
     activeCycle: activeCycle,
@@ -200,6 +230,7 @@ var Calc = (function () {
     aedLeftToday: aedLeftToday,
     pace: pace,
     historicalLimitsByDay: historicalLimitsByDay,
-    cycleSummary: cycleSummary
+    cycleSummary: cycleSummary,
+    liabilitySummary: liabilitySummary
   };
 })();

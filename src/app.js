@@ -235,12 +235,16 @@ var App = (function () {
     }
     if (ui.tab === 'home') html = HomeView.render(state, { todayISO: todayISO() });
     else if (ui.tab === 'history') html = HistoryView.render(state, { todayISO: todayISO(), viewingCycleId: ui.viewingCycleId });
+    else if (ui.tab === 'credit') html = LiabilitiesView.render(state, { todayISO: todayISO() });
     app.innerHTML = html + _renderTabbar() + _renderFab();
   }
   function _renderTabbar() {
+    var owed = Calc.liabilitySummary(state).unpaidCount;
+    var badge = owed > 0 ? '<span class="tab-badge">' + (owed > 99 ? '99+' : owed) + '</span>' : '';
     return '<nav class="tabbar">'
       + '<button class="tab ' + (ui.tab === 'home' ? 'active' : '') + '" data-tab="home"><div class="icon">⌂</div>' + I18n.t('tab_home') + '</button>'
       + '<button class="tab ' + (ui.tab === 'history' ? 'active' : '') + '" data-tab="history"><div class="icon">≣</div>' + I18n.t('tab_history') + '</button>'
+      + '<button class="tab ' + (ui.tab === 'credit' ? 'active' : '') + '" data-tab="credit"><div class="icon">💳' + badge + '</div>' + I18n.t('tab_credit') + '</button>'
       + '</nav>';
   }
   function _renderFab() {
@@ -272,6 +276,12 @@ var App = (function () {
     if (tab) { ui.tab = tab.getAttribute('data-tab'); if (ui.tab === 'history') ui.viewingCycleId = state.settings.activeCycleId; render(); return; }
     var cycChip = e.target.closest('[data-cycle-id]');
     if (cycChip) { ui.viewingCycleId = cycChip.getAttribute('data-cycle-id'); render(); return; }
+    var payBtn = e.target.closest('[data-action="mark-paid"]');
+    if (payBtn) { _markLiability(payBtn.getAttribute('data-liab-id'), true); return; }
+    var unpayBtn = e.target.closest('[data-action="mark-unpaid"]');
+    if (unpayBtn) { _markLiability(unpayBtn.getAttribute('data-liab-id'), false); return; }
+    var payAll = e.target.closest('[data-action="mark-all-paid"]');
+    if (payAll) { _markAllLiabilitiesPaid(); return; }
     var editRow = e.target.closest('[data-edit-id]');
     if (editRow) {
       var id = editRow.getAttribute('data-edit-id');
@@ -287,7 +297,8 @@ var App = (function () {
       id: uuid('txn'),
       cycleId: state.settings.activeCycleId,
       createdAt: now, updatedAt: now,
-      isExcludedFromPace: false
+      isExcludedFromPace: false,
+      isCredit: false, liabilitySettled: false, settledAt: null
     }, txnInput);
     state = Store.addTransaction(state, txn);
     state = Store.updateSettings(state, { lastUsedCategoryId: txn.categoryId });
@@ -322,6 +333,71 @@ var App = (function () {
         variant: 'success'
       });
     }
+  }
+
+  // ===== Credit / liability settle =====
+  function _markLiability(id, paid) {
+    var txn = state.transactions[id];
+    if (!txn) return;
+    var now = nowISO();
+    state = Store.updateTransaction(state, id, {
+      liabilitySettled: paid, settledAt: paid ? now : null, updatedAt: now
+    });
+    persist(); render();
+    var currency = state.settings.currency;
+    var left = Calc.liabilitySummary(state).outstanding;
+    if (paid) {
+      Toast.show({
+        message: I18n.t('toast_marked_paid', {
+          amount: Format.fmtMoney(txn.amount, currency),
+          left: Format.fmtMoney(left, currency)
+        }),
+        action: I18n.t('undo'),
+        onAction: function () { _markLiability(id, false); },
+        variant: 'success'
+      });
+    } else {
+      Toast.show({
+        message: I18n.t('toast_marked_unpaid', { left: Format.fmtMoney(left, currency) }),
+        variant: 'success'
+      });
+    }
+  }
+
+  function _markAllLiabilitiesPaid() {
+    var sum = Calc.liabilitySummary(state);
+    if (!sum.items.length) return;
+    ConfirmDialog.open({
+      title: I18n.t('confirm_mark_all_paid_title'),
+      text: I18n.t('confirm_mark_all_paid_text', {
+        n: sum.items.length,
+        amount: Format.fmtMoney(sum.outstanding, state.settings.currency)
+      }),
+      okLabel: I18n.t('credit_mark_all_paid')
+    }).then(function (ok) {
+      if (!ok) return;
+      var ids = sum.items.map(function (t) { return t.id; });
+      var now = nowISO();
+      var s = state;
+      ids.forEach(function (id) {
+        s = Store.updateTransaction(s, id, { liabilitySettled: true, settledAt: now, updatedAt: now });
+      });
+      state = s;
+      persist(); render();
+      Toast.show({
+        message: I18n.t('toast_marked_all_paid', { n: ids.length }),
+        action: I18n.t('undo'),
+        duration: 8000,
+        onAction: function () {
+          var s2 = state;
+          ids.forEach(function (id) {
+            if (s2.transactions[id]) s2 = Store.updateTransaction(s2, id, { liabilitySettled: false, settledAt: null, updatedAt: nowISO() });
+          });
+          state = s2; persist(); render();
+        },
+        variant: 'success'
+      });
+    });
   }
 
   function _openSettings() {

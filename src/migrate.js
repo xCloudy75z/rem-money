@@ -109,6 +109,18 @@ var Migrate = (function () {
       s = localizeTimestamps(s, options.localizeISO);
     }
 
+    // Backfill credit/liability fields so spends recorded before the Credit
+    // tracker existed (and old JSON backups) load cleanly. Idempotent: only
+    // fills when the field is absent, so already-tagged spends are untouched.
+    var txns = s.transactions || {};
+    for (var tid in txns) {
+      var t = txns[tid];
+      if (!t) continue;
+      if (t.isCredit === undefined) t.isCredit = false;
+      if (t.liabilitySettled === undefined) t.liabilitySettled = false;
+      if (t.settledAt === undefined) t.settledAt = null;
+    }
+
     return s;
   }
 

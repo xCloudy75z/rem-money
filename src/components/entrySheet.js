@@ -14,7 +14,7 @@ var EntrySheet = (function () {
 
   function open(state, todayISO, onSave) {
     var defaultCatId = state.settings.lastUsedCategoryId || Object.keys(state.categories)[0];
-    var local = { categoryId: defaultCatId, date: todayISO, isRefund: false };
+    var local = { categoryId: defaultCatId, date: todayISO, isRefund: false, isCredit: false };
 
     var cats = Object.values(state.categories)
       .filter(function (c) { return !c.isArchived; })
@@ -59,6 +59,10 @@ var EntrySheet = (function () {
       +   '<span>' + I18n.t('refund') + '</span>'
       +   '<button class="switch" id="es-refund" aria-pressed="false"></button>'
       + '</div>'
+      + '<div class="toggle-row">'
+      +   '<span>' + I18n.t('on_credit') + '</span>'
+      +   '<button class="switch" id="es-credit" aria-pressed="false"></button>'
+      + '</div>'
       + '<div class="sheet-footer">'
       +   '<button class="btn btn-ghost" id="es-add-another">' + I18n.t('save_and_add') + '</button>'
       +   '<button class="btn btn-primary" id="es-save">' + I18n.t('save') + '</button>'
@@ -80,7 +84,7 @@ var EntrySheet = (function () {
       var amt = Format.parseAmount(amountEl.value);
       if (!(amt > 0)) { amountEl.focus(); amountEl.classList.add('error'); return; }
       var note = (wrap.querySelector('#es-note').value || '').trim();
-      onSave({ amount: amt, categoryId: local.categoryId, date: local.date, note: note, isRefund: local.isRefund });
+      onSave({ amount: amt, categoryId: local.categoryId, date: local.date, note: note, isRefund: local.isRefund, isCredit: local.isCredit });
       if (stayOpen) {
         amountEl.value = ''; amountEl.classList.remove('error');
         wrap.querySelector('#es-note').value = '';
@@ -123,6 +127,12 @@ var EntrySheet = (function () {
         local.isRefund = !local.isRefund;
         t.classList.toggle('on', local.isRefund);
         t.setAttribute('aria-pressed', String(local.isRefund));
+        return;
+      }
+      if (t.id === 'es-credit') {
+        local.isCredit = !local.isCredit;
+        t.classList.toggle('on', local.isCredit);
+        t.setAttribute('aria-pressed', String(local.isCredit));
         return;
       }
       if (t.id === 'es-save') { doSave(false); return; }

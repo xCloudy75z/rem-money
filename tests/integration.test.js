@@ -87,7 +87,9 @@ test('integration: restore round-trip — export → migrate → validate → st
   let { s, cycle, otherId, idGen } = seedFreshState();
   s = Store.addTransaction(s, {
     id: idGen('t'), cycleId: cycle.id, categoryId: otherId, date: '2026-05-30',
-    amount: 35.80, isRefund: false, isExcludedFromPace: false, note: 'Lunch', createdAt: '', updatedAt: ''
+    amount: 35.80, isRefund: false, isExcludedFromPace: false,
+    isCredit: false, liabilitySettled: false, settledAt: null,
+    note: 'Lunch', createdAt: '', updatedAt: ''
   });
 
   // Simulate JSON envelope export

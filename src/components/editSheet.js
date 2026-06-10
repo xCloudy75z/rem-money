@@ -2,7 +2,7 @@ var EditSheet = (function () {
   'use strict';
 
   function open(state, txn, onAction) {
-    var local = { categoryId: txn.categoryId, date: txn.date, isRefund: !!txn.isRefund };
+    var local = { categoryId: txn.categoryId, date: txn.date, isRefund: !!txn.isRefund, isCredit: !!txn.isCredit };
     var cats = Object.values(state.categories)
       .filter(function (c) { return !c.isArchived || c.id === txn.categoryId; })
       .sort(function (a, b) { return a.order - b.order; });
@@ -35,6 +35,10 @@ var EditSheet = (function () {
       +   '<span>' + I18n.t('refund') + '</span>'
       +   '<button class="switch ' + (local.isRefund ? 'on' : '') + '" id="ed-refund" aria-pressed="' + local.isRefund + '"></button>'
       + '</div>'
+      + '<div class="toggle-row">'
+      +   '<span>' + I18n.t('on_credit') + '</span>'
+      +   '<button class="switch ' + (local.isCredit ? 'on' : '') + '" id="ed-credit" aria-pressed="' + local.isCredit + '"></button>'
+      + '</div>'
       + '<div class="sheet-footer">'
       +   '<button class="btn btn-danger" id="ed-delete">' + I18n.t('delete') + '</button>'
       +   '<button class="btn btn-primary" id="ed-save">' + I18n.t('save_changes') + '</button>'
@@ -64,12 +68,18 @@ var EditSheet = (function () {
         t.setAttribute('aria-pressed', String(local.isRefund));
         return;
       }
+      if (t.id === 'ed-credit') {
+        local.isCredit = !local.isCredit;
+        t.classList.toggle('on', local.isCredit);
+        t.setAttribute('aria-pressed', String(local.isCredit));
+        return;
+      }
       if (t.id === 'ed-save') {
         var amt = Format.parseAmount(amountEl.value);
         if (!(amt > 0)) { amountEl.focus(); amountEl.classList.add('error'); return; }
         var date = wrap.querySelector('#ed-date').value || txn.date;
         var note = (wrap.querySelector('#ed-note').value || '').trim();
-        onAction('save', { amount: amt, categoryId: local.categoryId, date: date, note: note, isRefund: local.isRefund });
+        onAction('save', { amount: amt, categoryId: local.categoryId, date: date, note: note, isRefund: local.isRefund, isCredit: local.isCredit });
         Sheet.close();
         return;
       }

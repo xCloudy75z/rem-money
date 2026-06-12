@@ -28,7 +28,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHAN
 | Date | Feature | Notes |
 |---|---|---|
 | 2026-06-10 | **Credit (liability) tracker** | Tag spends "on credit"; new Credit tab tracks total owed across cycles with per-item + bulk "Paid" settlement. Additive fields (`isCredit`/`liabilitySettled`/`settledAt`), back-filled by migrate, no schema bump. Commit `e2164eb`. See [CHANGELOG.md](CHANGELOG.md). |
-| 2026-06-12 | **Wife reimbursement tracker** | Tag spends `byWife` (forced on-credit + out-of-pace); new top-level `wifePayments` ledger; `Calc.wifeSummary` derives her `charged − paid` balance. "Wife owes you" card on the Credit tab with lump-sum + per-item "She paid" reimbursements. Additive, no schema bump, back-filled by migrate. 176 → 264 tests. See [CHANGELOG.md](CHANGELOG.md). |
+| 2026-06-12 | **Wife reimbursement tracker** | Tag spends `byWife` (forced on-credit + out-of-pace); new top-level `wifePayments` ledger; `Calc.wifeSummary` derives her `charged − paid` balance. "Wife owes you" card on the Credit tab with lump-sum + per-item "She paid" reimbursements. Additive, no schema bump, back-filled by migrate. 176 → 264 tests. Commits `9d39738`…`4060475`, deployed live via CI. See [CHANGELOG.md](CHANGELOG.md). |
 
 ## Deploy state
 
@@ -69,3 +69,5 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHAN
 | Deploy via GitHub Pages CI (dropped Netlify) | `git push` → Actions build + deploy | 2026-06-08 |
 | Credit tracking is additive, no schema bump | `isCredit`/`liabilitySettled`/`settledAt` back-filled by migrate; old backups load cleanly | 2026-06-10 |
 | Credit spends still count toward budget/pace | "On credit" only adds a liability total; it does not exclude the spend from the daily limit | 2026-06-10 |
+| Wife spends excluded from pace, counted in bank-credit | `byWife` forces `isExcludedFromPace`+`isCredit`; stays out of your daily limit but counts toward what you owe the bank | 2026-06-12 |
+| Wife reimbursement is an aggregate balance | `charged − paid` (no per-item settled flag); "She paid" just pre-fills a `wifePayment` amount | 2026-06-12 |

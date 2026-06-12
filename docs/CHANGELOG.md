@@ -24,6 +24,9 @@ Notable changes to Spending Tracker 2.0. Newest first.
   - **i18n:** full EN + AR strings for the feature.
   - **Tests:** new `tests/wife.test.js` (wifeSummary balance/refund/overpay/defensive + the
     budget-vs-credit invariant) plus store/migrate/validate/integration coverage. 176 → **264 tests**.
+  - **Process:** brainstormed → 5-critic adversarial design validation → spec → 14-task TDD plan
+    (`docs/superpowers/specs/` + `docs/superpowers/plans/`) → task-by-task implementation.
+  - Shipped to `main` (commits `9d39738`…`4060475`) and deployed **live** via GitHub Pages CI.
 
 ## 2026-06-10
 

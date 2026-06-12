@@ -2,6 +2,25 @@
 
 Notable changes to Spending Tracker 2.0. Newest first.
 
+## 2026-06-10
+
+### Added
+- **Credit (liability) tracker.** Tag any spend as "on credit" and track what is still owed
+  across all cycles, with per-item and bulk "Paid" settlement.
+  - **Data:** transactions gain `isCredit` / `liabilitySettled` / `settledAt`. Back-filled on
+    load by `Migrate` (idempotent, **no schema bump** — old backups load cleanly).
+  - **Calc:** `Calc.liabilitySummary` returns the global running total of unpaid credit (refunds
+    reduce it). Credit spends still count toward budget/pace exactly as before.
+  - **New "Credit" bottom tab + view** (`src/views/liabilities.js`): total owed, unpaid list with
+    per-row "Paid", "Mark all paid" (confirm + undo), and a collapsible "Recently paid" with
+    "Unpay". Tab shows an unpaid-count badge.
+  - **Entry/Edit sheets** gain an "On credit" toggle; Home/History rows show a Credit tag.
+  - **Export:** CSV gains `onCredit` / `creditSettled` columns (JSON backup covers it
+    automatically).
+  - **Tests:** new `tests/liabilities.test.js` (summary cross-cycle/refund/paid, settle
+    transitions, migrate backfill) + integration round-trip fixture updated. 156 → **176 tests**.
+  - Shipped to `main` (commit `e2164eb`) and live; this entry back-fills the docs for it.
+
 ## 2026-06-08
 
 ### Fixed

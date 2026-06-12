@@ -1,10 +1,10 @@
 # Project Status — Spending Tracker 2.0
 
-**Last updated:** 2026-06-08
+**Last updated:** 2026-06-10
 
 ## V1 status: ✅ SHIPPED & DEPLOYED
 
-All 8 layers complete. 156/156 tests green. Lint clean. Built artifact: ~130 KB inlined HTML + 2 KB service worker.
+All 8 layers complete. 176/176 tests green. Lint clean. Built artifact: ~130 KB inlined HTML + 2 KB service worker.
 
 **Live:** https://xcloudy75z.github.io/rem-money/ — auto-deployed by CI on every push to `main`.
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHANGELOG.md) for recent changes.
@@ -22,6 +22,12 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHAN
 | 6. Polish | ✅ | Hero pulse, prefers-reduced-motion, safe-area-inset, overscroll-behavior, focus-visible rings, RTL-ready logical CSS |
 | 7. Testing hardening | ✅ | Integration tests (full happy path + cutover from v0), perf tests (5000 txn budget), manual checklist |
 | 8. Release docs | ✅ | UPDATE.md, HOWTO.md, PROJECT-OVERVIEW.md, this file, HANDOVER.md |
+
+## Post-V1 features shipped
+
+| Date | Feature | Notes |
+|---|---|---|
+| 2026-06-10 | **Credit (liability) tracker** | Tag spends "on credit"; new Credit tab tracks total owed across cycles with per-item + bulk "Paid" settlement. Additive fields (`isCredit`/`liabilitySettled`/`settledAt`), back-filled by migrate, no schema bump. Commit `e2164eb`. See [CHANGELOG.md](CHANGELOG.md). |
 
 ## Deploy state
 
@@ -60,3 +66,5 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHAN
 | Timestamps stored as **local wall-clock** ISO (not UTC) | `createdAt`/`updatedAt` use local time so displayed times match the device clock | 2026-06-08 |
 | One-time UTC→local migration, gated by `settings.localTimestamps` | Converts pre-existing UTC timestamps once, never double-shifts | 2026-06-08 |
 | Deploy via GitHub Pages CI (dropped Netlify) | `git push` → Actions build + deploy | 2026-06-08 |
+| Credit tracking is additive, no schema bump | `isCredit`/`liabilitySettled`/`settledAt` back-filled by migrate; old backups load cleanly | 2026-06-10 |
+| Credit spends still count toward budget/pace | "On credit" only adds a liability total; it does not exclude the spend from the daily limit | 2026-06-10 |

@@ -115,3 +115,35 @@ test('Migrate of the real v0 fixture round-trips without throwing', () => {
   const arabicTxn = Object.values(v1.transactions).find(t => t.note === 'قهوة');
   assert.ok(arabicTxn, 'Arabic note preserved');
 });
+
+test('migrate initializes wifePayments when absent', () => {
+  const input = {
+    schemaVersion: 1,
+    settings: { currency: 'AED', salaryDay: 25, localTimestamps: true },
+    categories: {}, cycles: {}, transactions: {}
+  };
+  const out = Migrate.migrate(input, { now: '2026-06-12T00:00:00.000Z', idGen: (p) => p + '-1', empty: Store.empty });
+  assert.deepStrictEqual(out.wifePayments, {});
+});
+
+test('migrate preserves existing wifePayments', () => {
+  const input = {
+    schemaVersion: 1,
+    settings: { currency: 'AED', salaryDay: 25, localTimestamps: true },
+    categories: {}, cycles: {}, transactions: {},
+    wifePayments: { wp1: { id: 'wp1', amount: 100, date: '2026-06-10', note: '', createdAt: '' } }
+  };
+  const out = Migrate.migrate(input, { now: '2026-06-12T00:00:00.000Z', idGen: (p) => p + '-1', empty: Store.empty });
+  assert.strictEqual(out.wifePayments.wp1.amount, 100);
+});
+
+test('migrate backfills byWife:false on legacy transactions', () => {
+  const input = {
+    schemaVersion: 1,
+    settings: { currency: 'AED', salaryDay: 25, localTimestamps: true },
+    categories: {}, cycles: {},
+    transactions: { t1: { id: 't1', date: '2026-06-01', amount: 50, categoryId: 'c', cycleId: 'cy' } }
+  };
+  const out = Migrate.migrate(input, { now: '2026-06-12T00:00:00.000Z', idGen: (p) => p + '-1', empty: Store.empty });
+  assert.strictEqual(out.transactions.t1.byWife, false);
+});

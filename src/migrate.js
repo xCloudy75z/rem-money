@@ -119,7 +119,12 @@ var Migrate = (function () {
       if (t.isCredit === undefined) t.isCredit = false;
       if (t.liabilitySettled === undefined) t.liabilitySettled = false;
       if (t.settledAt === undefined) t.settledAt = null;
+      if (t.byWife === undefined) t.byWife = false;
     }
+
+    // Wife reimbursement ledger: initialize the collection if this state predates
+    // the feature (or came from an old JSON backup). Idempotent.
+    if (!s.wifePayments || typeof s.wifePayments !== 'object') s.wifePayments = {};
 
     return s;
   }

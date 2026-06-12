@@ -219,6 +219,45 @@ var Calc = (function () {
     };
   }
 
+  // ---- Wife reimbursement overlay (global, across ALL cycles) ----
+  // A byWife spend is excluded from the user's pace/limit and counts toward the
+  // bank-credit total; SEPARATELY the wife owes the user for it. Her balance is
+  // derived: charged (signed, so a wife refund reduces it) minus her payments.
+  function wifeSummary(state) {
+    var purchases = [];
+    var charged = 0;
+    for (var tid in state.transactions) {
+      var t = state.transactions[tid];
+      if (!t || !t.byWife) continue;
+      purchases.push(t);
+      charged += txnSignedAmount(t);
+    }
+    var payments = [];
+    var paid = 0;
+    var wp = state.wifePayments || {};
+    for (var pid in wp) {
+      var p = wp[pid];
+      if (!p) continue;
+      payments.push(p);
+      paid += Number(p.amount) || 0;
+    }
+    function _byDateDesc(a, b) {
+      return (b.date || '').localeCompare(a.date || '')
+        || (b.createdAt || '').localeCompare(a.createdAt || '');
+    }
+    purchases.sort(_byDateDesc);
+    payments.sort(_byDateDesc);
+    charged = Math.round(charged * 100) / 100;
+    paid = Math.round(paid * 100) / 100;
+    return {
+      charged: charged,
+      paid: paid,
+      balance: Math.round((charged - paid) * 100) / 100,
+      purchases: purchases,
+      payments: payments
+    };
+  }
+
   return {
     daysBetweenInclusive: daysBetweenInclusive,
     activeCycle: activeCycle,
@@ -231,6 +270,7 @@ var Calc = (function () {
     pace: pace,
     historicalLimitsByDay: historicalLimitsByDay,
     cycleSummary: cycleSummary,
-    liabilitySummary: liabilitySummary
+    liabilitySummary: liabilitySummary,
+    wifeSummary: wifeSummary
   };
 })();

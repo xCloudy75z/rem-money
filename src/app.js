@@ -138,6 +138,7 @@ var App = (function () {
         var txn = {
           id: uuid('txn'), cycleId: cycle.id, categoryId: cat.id, date: startDate,
           amount: amt, isRefund: false, isExcludedFromPace: false,
+          byWife: false,
           note: 'Sample', createdAt: now, updatedAt: now
         };
         s = Store.addTransaction(s, txn);
@@ -282,6 +283,12 @@ var App = (function () {
     if (unpayBtn) { _markLiability(unpayBtn.getAttribute('data-liab-id'), false); return; }
     var payAll = e.target.closest('[data-action="mark-all-paid"]');
     if (payAll) { _markAllLiabilitiesPaid(); return; }
+    var recordWifePay = e.target.closest('[data-action="record-wife-payment"]');
+    if (recordWifePay) { _openWifePayment(null); return; }
+    var prefillWifePay = e.target.closest('[data-action="wife-prefill-pay"]');
+    if (prefillWifePay) { _openWifePayment(Number(prefillWifePay.getAttribute('data-amount'))); return; }
+    var removeWifePay = e.target.closest('[data-action="remove-wife-payment"]');
+    if (removeWifePay) { _removeWifePayment(removeWifePay.getAttribute('data-payment-id')); return; }
     var editRow = e.target.closest('[data-edit-id]');
     if (editRow) {
       var id = editRow.getAttribute('data-edit-id');
@@ -298,7 +305,8 @@ var App = (function () {
       cycleId: state.settings.activeCycleId,
       createdAt: now, updatedAt: now,
       isExcludedFromPace: false,
-      isCredit: false, liabilitySettled: false, settledAt: null
+      isCredit: false, liabilitySettled: false, settledAt: null,
+      byWife: false
     }, txnInput);
     state = Store.addTransaction(state, txn);
     state = Store.updateSettings(state, { lastUsedCategoryId: txn.categoryId });
@@ -397,6 +405,44 @@ var App = (function () {
         },
         variant: 'success'
       });
+    });
+  }
+
+  // ===== Wife reimbursement =====
+  function _openWifePayment(prefillAmount) {
+    RecordPaymentSheet.open({
+      prefillAmount: (typeof prefillAmount === 'number' && prefillAmount > 0) ? prefillAmount : null,
+      todayISO: todayISO(),
+      onSave: function (input) {
+        var payment = {
+          id: uuid('wpay'),
+          amount: input.amount,
+          date: input.date,
+          note: input.note || '',
+          createdAt: nowISO()
+        };
+        state = Store.addWifePayment(state, payment);
+        persist(); render();
+        var bal = Calc.wifeSummary(state).balance;
+        Toast.show({
+          message: I18n.t('toast_wife_payment_added', { balance: Format.fmtMoney(bal, state.settings.currency) }),
+          variant: 'success'
+        });
+      }
+    });
+  }
+
+  function _removeWifePayment(id) {
+    var removed = state.wifePayments && state.wifePayments[id];
+    if (!removed) return;
+    state = Store.deleteWifePayment(state, id);
+    persist(); render();
+    var bal = Calc.wifeSummary(state).balance;
+    Toast.show({
+      message: I18n.t('toast_wife_payment_removed', { balance: Format.fmtMoney(bal, state.settings.currency) }),
+      action: I18n.t('undo'),
+      onAction: function () { state = Store.addWifePayment(state, removed); persist(); render(); },
+      variant: 'success'
     });
   }
 

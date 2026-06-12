@@ -18,7 +18,8 @@ var Store = (function () {
       },
       categories: {},
       cycles: {},
-      transactions: {}
+      transactions: {},
+      wifePayments: {}
     };
   }
 
@@ -68,23 +69,50 @@ var Store = (function () {
   }
 
   // ---- Immutable mutators: transactions ----
+  // A byWife spend is on the user's card (counts toward the bank-credit total)
+  // and is the wife's to repay (so it must stay out of the user's pace/limit).
+  // Normalize on a copy so the caller's object is never mutated, and so a
+  // non-wife txn passes through unchanged (no stray byWife field injected).
+  function _enforceWife(txn) {
+    if (txn && txn.byWife) {
+      return Object.assign({}, txn, { isCredit: true, isExcludedFromPace: true });
+    }
+    return txn;
+  }
+
   function addTransaction(state, txn) {
     if (!txn || !txn.id) throw new Error('addTransaction: txn.id required');
     var s = clone(state);
-    s.transactions[txn.id] = txn;
+    s.transactions[txn.id] = _enforceWife(txn);
     return s;
   }
 
   function updateTransaction(state, id, patch) {
     if (!state.transactions[id]) throw new Error('updateTransaction: id not found');
     var s = clone(state);
-    s.transactions[id] = Object.assign({}, s.transactions[id], patch);
+    s.transactions[id] = _enforceWife(Object.assign({}, s.transactions[id], patch));
     return s;
   }
 
   function deleteTransaction(state, id) {
     var s = clone(state);
     delete s.transactions[id];
+    return s;
+  }
+
+  // ---- Immutable mutators: wife reimbursement payments ----
+  function addWifePayment(state, payment) {
+    if (!payment || !payment.id) throw new Error('addWifePayment: payment.id required');
+    if (typeof payment.amount !== 'number' || payment.amount <= 0) throw new Error('addWifePayment: amount must be > 0');
+    var s = clone(state);
+    if (!s.wifePayments) s.wifePayments = {};
+    s.wifePayments[payment.id] = payment;
+    return s;
+  }
+
+  function deleteWifePayment(state, id) {
+    var s = clone(state);
+    if (s.wifePayments) delete s.wifePayments[id];
     return s;
   }
 
@@ -172,6 +200,7 @@ var Store = (function () {
     parse: parse, save: save, load: load,
     snapshot: snapshot, restoreSnapshot: restoreSnapshot, clearSnapshot: clearSnapshot,
     addTransaction: addTransaction, updateTransaction: updateTransaction, deleteTransaction: deleteTransaction,
+    addWifePayment: addWifePayment, deleteWifePayment: deleteWifePayment,
     addCategory: addCategory, updateCategory: updateCategory, archiveCategory: archiveCategory,
     deleteCategory: deleteCategory, reassignCategory: reassignCategory,
     addCycle: addCycle, archiveCycle: archiveCycle,

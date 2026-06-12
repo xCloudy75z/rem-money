@@ -139,4 +139,46 @@ test('updateSettings clamps salaryDay to 1-28', () => {
   assert.strictEqual(s.settings.salaryDay, 1);
 });
 
+test('Store.empty() includes an empty wifePayments map', () => {
+  assert.deepStrictEqual(Store.empty().wifePayments, {});
+});
+
+test('addWifePayment adds immutably; original unchanged', () => {
+  const a = Store.empty();
+  const p = { id: 'wp1', amount: 100, date: '2026-06-12', note: '', createdAt: '2026-06-12T10:00:00.000Z' };
+  const b = Store.addWifePayment(a, p);
+  assert.strictEqual(Object.keys(a.wifePayments).length, 0);
+  assert.deepStrictEqual(b.wifePayments['wp1'], p);
+});
+
+test('addWifePayment throws without id or with non-positive amount', () => {
+  const a = Store.empty();
+  assert.throws(() => Store.addWifePayment(a, { amount: 10 }));
+  assert.throws(() => Store.addWifePayment(a, { id: 'wp1', amount: 0 }));
+  assert.throws(() => Store.addWifePayment(a, { id: 'wp1', amount: -5 }));
+});
+
+test('deleteWifePayment removes the key', () => {
+  let s = Store.addWifePayment(Store.empty(), { id: 'wp1', amount: 100, date: '2026-06-12', note: '', createdAt: '' });
+  s = Store.deleteWifePayment(s, 'wp1');
+  assert.strictEqual(s.wifePayments['wp1'], undefined);
+});
+
+test('addTransaction forces isCredit + isExcludedFromPace when byWife is true', () => {
+  const txn = { id: 't1', amount: 50, categoryId: 'c', cycleId: 'cy', date: '2026-06-12', byWife: true };
+  const b = Store.addTransaction(Store.empty(), txn);
+  assert.strictEqual(b.transactions['t1'].byWife, true);
+  assert.strictEqual(b.transactions['t1'].isCredit, true);
+  assert.strictEqual(b.transactions['t1'].isExcludedFromPace, true);
+  // input object must NOT be mutated
+  assert.strictEqual(txn.isCredit, undefined);
+});
+
+test('updateTransaction toggling byWife on forces the flags', () => {
+  let s = Store.addTransaction(Store.empty(), { id: 't1', amount: 50, categoryId: 'c', cycleId: 'cy', date: '2026-06-12', isCredit: false, isExcludedFromPace: false });
+  s = Store.updateTransaction(s, 't1', { byWife: true });
+  assert.strictEqual(s.transactions['t1'].isCredit, true);
+  assert.strictEqual(s.transactions['t1'].isExcludedFromPace, true);
+});
+
 module.exports = { loadModule };

@@ -38,9 +38,12 @@ deleting any record self-corrects.
 
 **Invariant:** whenever `byWife === true`, the transaction must also have
 `isCredit === true` and `isExcludedFromPace === true`. This is enforced in the **`Store`
-mutators** (`addTransaction` / `updateTransaction` normalize the record so `byWife:true`
-implies the other two), not just in the UI — so a `byWife:true, isCredit:false` state is
-impossible regardless of how the record was constructed.
+mutators** via a `_enforceWife(txn)` helper that returns `Object.assign({}, txn, {isCredit:true,
+isExcludedFromPace:true})` when `txn.byWife` is truthy and returns `txn` unchanged otherwise.
+`addTransaction` and `updateTransaction` pass the record through it. Because it is a no-op for
+non-wife txns, it does **not** inject a `byWife` field into ordinary records (preserving the
+existing `addTransaction is immutable` deep-equal test). A `byWife:true, isCredit:false` state
+is therefore impossible regardless of how the record was constructed.
 
 Consequences that fall out of **existing** calc code with no changes:
 - `isExcludedFromPace:true` → already skipped by `cycleTotalSpent`, `todaySpent`, `todayLimit`,
@@ -62,9 +65,12 @@ state.wifePayments: {
 
 ### Schema version
 
-Bump `schemaVersion` 1 → 2 (this is a structural addition of a top-level collection, unlike
-the field-only credit change). Initialize `wifePayments: {}` in **`Store.empty()`**, in
-**`Migrate`** (idempotent — create if absent), and validate its shape in **`Validate`**.
+**Keep `schemaVersion` at 1** (additive change, matching the credit feature's precedent — a
+bump would force touching `validate.js`'s hard `=== 1` check, `migrateV0toV1`, and the existing
+round-trip test fixtures, risking the 176 green tests for no practical gain in a single-user,
+auto-updating PWA). Safety is achieved instead by initializing `wifePayments: {}` in
+**`Store.empty()`**, in **`Migrate`** (idempotent — create if absent), validating its shape in
+**`Validate`**, and reading it defensively (`state.wifePayments || {}`) in `Calc`.
 
 ## Two independent settlements
 
@@ -114,8 +120,11 @@ bank-credit card:
 - **Balance** — big number from `wifeSummary.balance` (or "Wife credit: …" when negative; an
   all-settled empty state at exactly 0).
 - **Record payment** button.
-- **Her purchases** — collapsible list, newest-first. Each row tappable (see below).
-- **Her payments** — collapsible list, newest-first. Each row has a **remove** action with the
+- **Her purchases** — a plain section (`.section-h` + `.txn-list`, matching the existing
+  "Recently paid" section — not a collapsible), newest-first. Each row is tappable to **edit**
+  (`data-edit-id`, like the bank rows) and carries a small **"She paid"** button that opens the
+  Record-payment sheet pre-filled with that purchase's amount.
+- **Her payments** — a plain section, newest-first. Each row has a **Remove** button with the
   existing toast-undo pattern.
 
 The existing bank card/list is unchanged except that wife items in it carry a **"Wife"** tag
@@ -128,7 +137,7 @@ A small sheet (follows `entrySheet.js` conventions):
 - **Date** — defaults to today (today/yesterday/custom, like the entry sheet).
 - **Note** — optional.
 
-**Per-item clear (Q2):** tapping a purchase in "Her purchases" opens this same sheet
+**Per-item clear (Q2):** the **"She paid"** button on a purchase opens this same sheet
 pre-filled with *that purchase's amount*. This is a **convenience for entering the right
 number** — it records a normal `wifePayment`; it does **not** mark that specific row settled
 (the model is aggregate). The purchases list is a charge history; the balance is the truth.
@@ -157,7 +166,8 @@ transactions, alongside the existing Credit tag.
   `Store.addTransaction` / `updateTransaction` enforce the `byWife` invariant (force
   `isCredit` + `isExcludedFromPace`).
 - **`Migrate` (`migrate.js`):** idempotent — create `state.wifePayments = {}` if absent;
-  backfill `t.byWife = false` where undefined; set `schemaVersion = 2`. Re-running is a no-op.
+  backfill `t.byWife = false` where undefined (alongside the existing credit-field backfill).
+  `schemaVersion` stays 1. Re-running is a no-op.
 - **`Validate` (`validate.js`):** check `wifePayments` is an object and each entry has
   `id`, `amount` (number > 0), `date` (ISO), `note` (string ≤ 280), `createdAt` (ISO); check
   `byWife` is boolean on transactions.

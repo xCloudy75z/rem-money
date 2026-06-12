@@ -2,7 +2,7 @@ var EditSheet = (function () {
   'use strict';
 
   function open(state, txn, onAction) {
-    var local = { categoryId: txn.categoryId, date: txn.date, isRefund: !!txn.isRefund, isCredit: !!txn.isCredit };
+    var local = { categoryId: txn.categoryId, date: txn.date, isRefund: !!txn.isRefund, isCredit: !!txn.isCredit, byWife: !!txn.byWife };
     var cats = Object.values(state.categories)
       .filter(function (c) { return !c.isArchived || c.id === txn.categoryId; })
       .sort(function (a, b) { return a.order - b.order; });
@@ -37,7 +37,11 @@ var EditSheet = (function () {
       + '</div>'
       + '<div class="toggle-row">'
       +   '<span>' + I18n.t('on_credit') + '</span>'
-      +   '<button class="switch ' + (local.isCredit ? 'on' : '') + '" id="ed-credit" aria-pressed="' + local.isCredit + '"></button>'
+      +   '<button class="switch ' + (local.isCredit ? 'on' : '') + (local.byWife ? ' disabled' : '') + '" id="ed-credit" aria-pressed="' + local.isCredit + '"></button>'
+      + '</div>'
+      + '<div class="toggle-row">'
+      +   '<span>' + I18n.t('on_wife') + '</span>'
+      +   '<button class="switch ' + (local.byWife ? 'on' : '') + '" id="ed-wife" aria-pressed="' + local.byWife + '"></button>'
       + '</div>'
       + '<div class="sheet-footer">'
       +   '<button class="btn btn-danger" id="ed-delete">' + I18n.t('delete') + '</button>'
@@ -69,9 +73,24 @@ var EditSheet = (function () {
         return;
       }
       if (t.id === 'ed-credit') {
+        if (t.classList.contains('disabled')) return;
         local.isCredit = !local.isCredit;
         t.classList.toggle('on', local.isCredit);
         t.setAttribute('aria-pressed', String(local.isCredit));
+        return;
+      }
+      if (t.id === 'ed-wife') {
+        local.byWife = !local.byWife;
+        t.classList.toggle('on', local.byWife);
+        t.setAttribute('aria-pressed', String(local.byWife));
+        var creditBtn = wrap.querySelector('#ed-credit');
+        if (local.byWife) {
+          local.isCredit = true;
+          creditBtn.classList.add('on', 'disabled');
+          creditBtn.setAttribute('aria-pressed', 'true');
+        } else {
+          creditBtn.classList.remove('disabled');
+        }
         return;
       }
       if (t.id === 'ed-save') {
@@ -79,7 +98,7 @@ var EditSheet = (function () {
         if (!(amt > 0)) { amountEl.focus(); amountEl.classList.add('error'); return; }
         var date = wrap.querySelector('#ed-date').value || txn.date;
         var note = (wrap.querySelector('#ed-note').value || '').trim();
-        onAction('save', { amount: amt, categoryId: local.categoryId, date: date, note: note, isRefund: local.isRefund, isCredit: local.isCredit });
+        onAction('save', { amount: amt, categoryId: local.categoryId, date: date, note: note, isRefund: local.isRefund, isCredit: local.isCredit, byWife: local.byWife });
         Sheet.close();
         return;
       }

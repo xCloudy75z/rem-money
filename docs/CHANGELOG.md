@@ -2,6 +2,29 @@
 
 Notable changes to Spending Tracker 2.0. Newest first.
 
+## 2026-06-12
+
+### Added
+- **Wife reimbursement tracker.** Track what your wife owes you for spends she puts on your card —
+  a running `charged − paid` balance that stays out of your daily budget but counts toward the
+  bank-credit total — and record her lump-sum and per-item reimbursements.
+  - **Data:** transactions gain a `byWife` flag; a new top-level `wifePayments` collection holds
+    her reimbursements. A `byWife` spend is forced by the Store mutators to also be `isCredit` +
+    `isExcludedFromPace` (counts toward the bank, out of your pace). Back-filled on load by
+    `Migrate` (idempotent, **no schema bump** — old backups load cleanly).
+  - **Calc:** `Calc.wifeSummary` derives her balance — signed charged (a wife refund reduces it)
+    minus her payments — plus the purchase/payment lists. A wife spend appears in
+    `liabilitySummary` but never in cycle spend/pace.
+  - **Credit tab:** a "Wife owes you" card (with overpaid/"Wife credit" state) plus "Her purchases"
+    and "Her payments" sections. A "Record payment" sheet logs a lump sum; each purchase has a
+    "She paid" button that pre-fills the amount. Removing a payment restores the balance (with Undo).
+  - **Entry/Edit sheets** gain a "Wife used my card" toggle that auto-checks and **locks** the
+    On-credit toggle. Home/History/bank rows show a **Wife** tag.
+  - **Export:** CSV gains a `byWife` column (JSON backup covers `wifePayments` automatically).
+  - **i18n:** full EN + AR strings for the feature.
+  - **Tests:** new `tests/wife.test.js` (wifeSummary balance/refund/overpay/defensive + the
+    budget-vs-credit invariant) plus store/migrate/validate/integration coverage. 176 → **264 tests**.
+
 ## 2026-06-10
 
 ### Added

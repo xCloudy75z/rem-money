@@ -1,10 +1,10 @@
 # Project Status — Spending Tracker 2.0
 
-**Last updated:** 2026-06-10
+**Last updated:** 2026-06-12
 
 ## V1 status: ✅ SHIPPED & DEPLOYED
 
-All 8 layers complete. 176/176 tests green. Lint clean. Built artifact: ~130 KB inlined HTML + 2 KB service worker.
+All 8 layers complete. 264/264 tests green. Lint clean. Built artifact: ~130 KB inlined HTML + 2 KB service worker.
 
 **Live:** https://xcloudy75z.github.io/rem-money/ — auto-deployed by CI on every push to `main`.
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHANGELOG.md) for recent changes.
@@ -28,6 +28,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHAN
 | Date | Feature | Notes |
 |---|---|---|
 | 2026-06-10 | **Credit (liability) tracker** | Tag spends "on credit"; new Credit tab tracks total owed across cycles with per-item + bulk "Paid" settlement. Additive fields (`isCredit`/`liabilitySettled`/`settledAt`), back-filled by migrate, no schema bump. Commit `e2164eb`. See [CHANGELOG.md](CHANGELOG.md). |
+| 2026-06-12 | **Wife reimbursement tracker** | Tag spends `byWife` (forced on-credit + out-of-pace); new top-level `wifePayments` ledger; `Calc.wifeSummary` derives her `charged − paid` balance. "Wife owes you" card on the Credit tab with lump-sum + per-item "She paid" reimbursements. Additive, no schema bump, back-filled by migrate. 176 → 264 tests. See [CHANGELOG.md](CHANGELOG.md). |
 
 ## Deploy state
 

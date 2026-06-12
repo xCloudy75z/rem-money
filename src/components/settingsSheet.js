@@ -16,7 +16,7 @@ var SettingsSheet = (function () {
   }
 
   function exportCSV(state, todayISO) {
-    var rows = [['date', 'categoryName', 'amount', 'isRefund', 'isExcludedFromPace', 'onCredit', 'creditSettled', 'note', 'cycleStart', 'cycleEnd']];
+    var rows = [['date', 'categoryName', 'amount', 'isRefund', 'isExcludedFromPace', 'onCredit', 'byWife', 'creditSettled', 'note', 'cycleStart', 'cycleEnd']];
     var sorted = Object.values(state.transactions).slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
     for (var i = 0; i < sorted.length; i++) {
       var t = sorted[i];
@@ -24,7 +24,7 @@ var SettingsSheet = (function () {
       var cyc = state.cycles[t.cycleId] || { startDate: '', endDate: '' };
       var note = '"' + (t.note || '').replace(/"/g, '""') + '"';
       var name = '"' + c.name.replace(/"/g, '""') + '"';
-      rows.push([t.date, name, Number(t.amount).toFixed(2), t.isRefund ? 'true' : 'false', t.isExcludedFromPace ? 'true' : 'false', t.isCredit ? 'true' : 'false', t.liabilitySettled ? 'true' : 'false', note, cyc.startDate, cyc.endDate]);
+      rows.push([t.date, name, Number(t.amount).toFixed(2), t.isRefund ? 'true' : 'false', t.isExcludedFromPace ? 'true' : 'false', t.isCredit ? 'true' : 'false', t.byWife ? 'true' : 'false', t.liabilitySettled ? 'true' : 'false', note, cyc.startDate, cyc.endDate]);
     }
     var csv = '﻿' + rows.map(function (r) { return r.join(','); }).join('\r\n');
     _downloadBlob(csv, 'text/csv;charset=utf-8', 'spending-tracker-export-' + todayISO + '.csv');

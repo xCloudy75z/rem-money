@@ -36,3 +36,36 @@ test('Validate flags salaryDay out of range', () => {
   const r = Validate.validate(s);
   assert.ok(r.errors.some(e => /salaryDay/.test(e)));
 });
+
+test('validate accepts a well-formed wifePayment', () => {
+  const s = Store.empty();
+  s.categories['c'] = { id: 'c', name: 'Other' };
+  s.cycles['cy'] = { id: 'cy', startDate: '2026-06-01', endDate: '2026-06-30', startBudget: 1000 };
+  s.settings.activeCycleId = 'cy';
+  s.wifePayments['wp1'] = { id: 'wp1', amount: 100, date: '2026-06-12', note: 'ok', createdAt: '2026-06-12T10:00:00.000Z' };
+  assert.strictEqual(Validate.validate(s).ok, true, JSON.stringify(Validate.validate(s).errors));
+});
+
+test('validate rejects a wifePayment with non-positive amount', () => {
+  const s = Store.empty();
+  s.categories['c'] = { id: 'c', name: 'Other' };
+  s.cycles['cy'] = { id: 'cy', startDate: '2026-06-01', endDate: '2026-06-30', startBudget: 1000 };
+  s.wifePayments['wp1'] = { id: 'wp1', amount: 0, date: '2026-06-12', note: '', createdAt: '' };
+  assert.strictEqual(Validate.validate(s).ok, false);
+});
+
+test('validate rejects a wifePayment with malformed date', () => {
+  const s = Store.empty();
+  s.categories['c'] = { id: 'c', name: 'Other' };
+  s.cycles['cy'] = { id: 'cy', startDate: '2026-06-01', endDate: '2026-06-30', startBudget: 1000 };
+  s.wifePayments['wp1'] = { id: 'wp1', amount: 50, date: 'June 12', note: '', createdAt: '' };
+  assert.strictEqual(Validate.validate(s).ok, false);
+});
+
+test('validate rejects a transaction whose byWife is not boolean', () => {
+  const s = Store.empty();
+  s.categories['c'] = { id: 'c', name: 'Other' };
+  s.cycles['cy'] = { id: 'cy', startDate: '2026-06-01', endDate: '2026-06-30', startBudget: 1000 };
+  s.transactions['t1'] = { id: 't1', date: '2026-06-12', amount: 10, categoryId: 'c', cycleId: 'cy', byWife: 'yes' };
+  assert.strictEqual(Validate.validate(s).ok, false);
+});

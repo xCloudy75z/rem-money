@@ -50,6 +50,15 @@ var Validate = (function () {
       if (!t.categoryId || !state.categories[t.categoryId]) errors.push('txn ' + tid + ' categoryId invalid');
       if (!t.cycleId || !state.cycles[t.cycleId]) errors.push('txn ' + tid + ' cycleId invalid');
       if (typeof t.note === 'string' && t.note.length > 280) errors.push('txn ' + tid + ' note >280 chars');
+      if (t.byWife !== undefined && typeof t.byWife !== 'boolean') errors.push('txn ' + tid + ' byWife must be boolean');
+    }
+
+    for (var pid in (state.wifePayments || {})) {
+      var p = state.wifePayments[pid];
+      if (!p || !p.id) { errors.push('wifePayment ' + pid + ' missing id'); continue; }
+      if (typeof p.amount !== 'number' || p.amount <= 0) errors.push('wifePayment ' + pid + ' amount must be > 0');
+      if (!ISO_DATE.test(p.date || '')) errors.push('wifePayment ' + pid + ' has malformed date');
+      if (typeof p.note === 'string' && p.note.length > 280) errors.push('wifePayment ' + pid + ' note >280 chars');
     }
 
     return { ok: errors.length === 0, errors: errors };

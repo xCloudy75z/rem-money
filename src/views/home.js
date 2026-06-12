@@ -5,10 +5,11 @@ var HomeView = (function () {
     var cat = (state.categories[t.categoryId]) || { name: '—', icon: '•', color: '#999' };
     var time = t.createdAt ? Format.fmtTime(t.createdAt) : '';
     var creditTag = t.isCredit ? ' · ' + I18n.t(t.liabilitySettled ? 'credit_paid_tag' : 'credit_tag') : '';
+    var wifeTag = t.byWife ? ' · ' + I18n.t('wife_tag') : '';
     return '<li class="txn" data-edit-id="' + t.id + '">'
       +   '<span class="cat-dot" style="background:' + cat.color + '33;color:' + cat.color + '">' + Format.escapeHTML(cat.icon || '•') + '</span>'
       +   '<div class="main">'
-      +     '<div class="top-line">' + Format.escapeHTML(cat.name) + (t.isRefund ? ' · Refund' : '') + creditTag + '</div>'
+      +     '<div class="top-line">' + Format.escapeHTML(cat.name) + (t.isRefund ? ' · Refund' : '') + creditTag + wifeTag + '</div>'
       +     '<div class="bot-line">' + time + (t.note ? (time ? ' · ' : '') + Format.escapeHTML(t.note) : '') + '</div>'
       +   '</div>'
       +   '<div class="amount ' + (t.isRefund ? 'refund' : '') + '">' + (t.isRefund ? '−' : '') + Number(t.amount).toFixed(2) + '</div>'

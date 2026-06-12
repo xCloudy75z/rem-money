@@ -88,9 +88,19 @@ test('integration: restore round-trip — export → migrate → validate → st
   s = Store.addTransaction(s, {
     id: idGen('t'), cycleId: cycle.id, categoryId: otherId, date: '2026-05-30',
     amount: 35.80, isRefund: false, isExcludedFromPace: false,
-    isCredit: false, liabilitySettled: false, settledAt: null,
+    isCredit: false, liabilitySettled: false, settledAt: null, byWife: false,
     note: 'Lunch', createdAt: '', updatedAt: ''
   });
+
+  // A wife purchase (forced isCredit + excluded-from-pace by the Store mutator)
+  s = Store.addTransaction(s, {
+    id: idGen('t'), cycleId: cycle.id, categoryId: otherId, date: '2026-05-30',
+    amount: 60, isRefund: false, byWife: true,
+    isCredit: true, isExcludedFromPace: true, liabilitySettled: false, settledAt: null,
+    note: 'Groceries', createdAt: '', updatedAt: ''
+  });
+  // A reimbursement from her
+  s = Store.addWifePayment(s, { id: 'wp-1', amount: 40, date: '2026-05-31', note: '', createdAt: '' });
 
   // Simulate JSON envelope export
   const envelope = { app: 'spending-tracker', schemaVersion: 1, exportedAt: '2026-05-30T00:00:00.000Z', state: s };
@@ -105,6 +115,8 @@ test('integration: restore round-trip — export → migrate → validate → st
   assert.strictEqual(v.ok, true, 'restored state must validate; errors: ' + JSON.stringify(v.errors));
   assert.deepStrictEqual(migrated.transactions, s.transactions);
   assert.deepStrictEqual(migrated.cycles, s.cycles);
+  assert.deepStrictEqual(migrated.wifePayments, s.wifePayments);
+  assert.strictEqual(Calc.wifeSummary(migrated).balance, 20); // 60 charged − 40 paid
 });
 
 test('integration: cycle rollover — archive old, start new, txns stay with old cycle', () => {

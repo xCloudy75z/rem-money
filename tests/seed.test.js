@@ -16,6 +16,16 @@ test('Seed.defaultCategories returns 5 seeded categories', () => {
   });
 });
 
+test('Seed.defaultCategories carry a zero monthly budget', () => {
+  let i = 0;
+  const idGen = (prefix) => prefix + '-' + (i++);
+  const cats = Seed.defaultCategories('2026-05-30T00:00:00.000Z', idGen);
+  Object.values(cats).forEach(c => {
+    assert.strictEqual(c.budget, 0);
+    assert.strictEqual(c.budgetPeriod, 'monthly');
+  });
+});
+
 test('Seed.newCycle produces a valid cycle', () => {
   const c = Seed.newCycle('2026-05-25', '2026-06-24', 12454.70, '2026-05-25T00:00:00.000Z', (p) => p + '-x');
   assert.strictEqual(c.startDate, '2026-05-25');

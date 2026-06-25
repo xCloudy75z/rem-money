@@ -34,7 +34,7 @@ var App = (function () {
 
   // ===== State + UI =====
   var state = null;
-  var ui = { tab: 'home', viewingCycleId: null };
+  var ui = { tab: 'home', viewingCycleId: null, planUnit: 'monthly' };
   var _pendingStorageRefresh = false;
 
   // ===== Lazy migration options (seed only generated if v0 path taken) =====
@@ -236,6 +236,7 @@ var App = (function () {
     }
     if (ui.tab === 'home') html = HomeView.render(state, { todayISO: todayISO() });
     else if (ui.tab === 'history') html = HistoryView.render(state, { todayISO: todayISO(), viewingCycleId: ui.viewingCycleId });
+    else if (ui.tab === 'plan') html = PlanView.render(state, { todayISO: todayISO(), unit: ui.planUnit });
     else if (ui.tab === 'credit') html = LiabilitiesView.render(state, { todayISO: todayISO() });
     app.innerHTML = html + _renderTabbar() + _renderFab();
   }
@@ -245,6 +246,7 @@ var App = (function () {
     return '<nav class="tabbar">'
       + '<button class="tab ' + (ui.tab === 'home' ? 'active' : '') + '" data-tab="home"><div class="icon">⌂</div>' + I18n.t('tab_home') + '</button>'
       + '<button class="tab ' + (ui.tab === 'history' ? 'active' : '') + '" data-tab="history"><div class="icon">≣</div>' + I18n.t('tab_history') + '</button>'
+      + '<button class="tab ' + (ui.tab === 'plan' ? 'active' : '') + '" data-tab="plan"><div class="icon">▤</div>' + I18n.t('tab_plan') + '</button>'
       + '<button class="tab ' + (ui.tab === 'credit' ? 'active' : '') + '" data-tab="credit"><div class="icon">💳' + badge + '</div>' + I18n.t('tab_credit') + '</button>'
       + '</nav>';
   }
@@ -275,6 +277,14 @@ var App = (function () {
     if (settings) { _openSettings(); return; }
     var tab = e.target.closest('.tab[data-tab]');
     if (tab) { ui.tab = tab.getAttribute('data-tab'); if (ui.tab === 'history') ui.viewingCycleId = state.settings.activeCycleId; render(); return; }
+    var planUnitBtn = e.target.closest('[data-action="plan-unit"]');
+    if (planUnitBtn) { ui.planUnit = planUnitBtn.getAttribute('data-unit') === 'yearly' ? 'yearly' : 'monthly'; render(); return; }
+    var planAddCat = e.target.closest('[data-action="plan-add-cat"]');
+    if (planAddCat) { _openAddCategory(); return; }
+    var delCatBtn = e.target.closest('[data-del-cat-id]');
+    if (delCatBtn) { _deleteCategoryFlow(delCatBtn.getAttribute('data-del-cat-id')); return; }
+    var editCatRow = e.target.closest('[data-edit-cat-id]');
+    if (editCatRow) { _openEditCategory(editCatRow.getAttribute('data-edit-cat-id')); return; }
     var cycChip = e.target.closest('[data-cycle-id]');
     if (cycChip) { ui.viewingCycleId = cycChip.getAttribute('data-cycle-id'); render(); return; }
     var payBtn = e.target.closest('[data-action="mark-paid"]');
@@ -446,6 +456,60 @@ var App = (function () {
     });
   }
 
+  // ===== Category management (Plan page) =====
+  function _openAddCategory() {
+    CategorySheet.open({
+      title: I18n.t('add_category').replace(/^\+\s*/, ''),
+      initial: { name: '', icon: '•', color: '#5ab19a', budget: 0, budgetPeriod: 'monthly' },
+      onSave: function (input) {
+        try {
+          var cats = Object.values(state.categories);
+          var maxOrder = cats.reduce(function (m, c) { return Math.max(m, c.order || 0); }, -1);
+          var cat = {
+            id: uuid('cat'), name: input.name, icon: input.icon || '•', color: input.color || '#5ab19a',
+            order: maxOrder + 1, isArchived: false, createdAt: nowISO(),
+            budget: input.budget || 0, budgetPeriod: input.budgetPeriod || 'monthly'
+          };
+          state = Store.addCategory(state, cat);
+          persist(); render();
+        } catch (err) { Toast.show({ message: err.message, variant: 'error' }); }
+      }
+    });
+  }
+
+  function _openEditCategory(id) {
+    var cat = state.categories[id];
+    if (!cat) return;
+    CategorySheet.open({
+      title: I18n.t('edit_category'),
+      initial: { name: cat.name, icon: cat.icon, color: cat.color, budget: cat.budget || 0, budgetPeriod: cat.budgetPeriod || 'monthly' },
+      onSave: function (input) {
+        try { state = Store.updateCategory(state, id, input); persist(); render(); }
+        catch (err) { Toast.show({ message: err.message, variant: 'error' }); }
+      }
+    });
+  }
+
+  function _deleteCategoryFlow(id) {
+    var refCount = Object.values(state.transactions).filter(function (x) { return x.categoryId === id; }).length;
+    if (refCount === 0) {
+      state = Store.deleteCategory(state, id);
+      persist(); render();
+      return;
+    }
+    var others = Object.values(state.categories).filter(function (c) { return c.id !== id && !c.isArchived; });
+    if (others.length === 0) { Toast.show({ message: 'Add another category first.', variant: 'error' }); return; }
+    ReassignSheet.open({
+      others: others,
+      refCount: refCount,
+      onPick: function (newCatId) {
+        state = Store.reassignCategory(state, id, newCatId);
+        state = Store.deleteCategory(state, id);
+        persist(); render();
+      }
+    });
+  }
+
   function _openSettings() {
     SettingsSheet.open(state, {
       onCycleBudget: function (n) {
@@ -467,29 +531,7 @@ var App = (function () {
         }
         persist(); render(); return state;
       },
-      onAddCategory: function (input) {
-        var cats = Object.values(state.categories);
-        var maxOrder = cats.reduce(function (m, c) { return Math.max(m, c.order || 0); }, -1);
-        var cat = {
-          id: uuid('cat'), name: input.name, icon: input.icon || '•', color: input.color || '#5ab19a',
-          order: maxOrder + 1, isArchived: false, createdAt: nowISO()
-        };
-        state = Store.addCategory(state, cat);
-        persist(); render(); return state;
-      },
-      onUpdateCategory: function (id, patch) {
-        state = Store.updateCategory(state, id, patch);
-        persist(); render(); return state;
-      },
-      onDeleteCategory: function (id) {
-        state = Store.deleteCategory(state, id);
-        persist(); render(); return state;
-      },
-      onReassignAndDelete: function (fromId, toId) {
-        state = Store.reassignCategory(state, fromId, toId);
-        state = Store.deleteCategory(state, fromId);
-        persist(); render(); return state;
-      },
+      onManageCategories: function () { ui.tab = 'plan'; render(); },
       onTheme: function (theme) {
         state = Store.updateSettings(state, { theme: theme });
         _applyTheme(theme);

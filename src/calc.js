@@ -284,6 +284,35 @@ var Calc = (function () {
     return Math.round(sum * 100) / 100;
   }
 
+  // Build the Plan-page model: one row per non-archived category (sorted by
+  // order) with its monthly budget, this-cycle spend, percent, and over flag,
+  // plus the total of all monthly budgets. Zero-budget categories are still
+  // listed (so they can be edited) but contribute nothing to the total.
+  function planSummary(state, cycleId) {
+    var cats = [];
+    for (var id in (state.categories || {})) {
+      var c = state.categories[id];
+      if (!c || c.isArchived) continue;
+      cats.push(c);
+    }
+    cats.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    var rows = [];
+    var total = 0;
+    for (var i = 0; i < cats.length; i++) {
+      var cat = cats[i];
+      var mb = monthlyBudget(cat);
+      var spent = categorySpentThisCycle(state, cat.id, cycleId);
+      var pct = mb > 0 ? Math.min(100, Math.round((spent / mb) * 100)) : 0;
+      var over = mb > 0 && spent > mb;
+      if (mb > 0) total += mb;
+      rows.push({
+        categoryId: cat.id, name: cat.name, icon: cat.icon, color: cat.color,
+        order: cat.order, spent: spent, monthlyBudget: mb, pct: pct, over: over
+      });
+    }
+    return { rows: rows, totalMonthlyPlanned: Math.round(total * 100) / 100 };
+  }
+
   return {
     daysBetweenInclusive: daysBetweenInclusive,
     activeCycle: activeCycle,
@@ -300,5 +329,6 @@ var Calc = (function () {
     wifeSummary: wifeSummary,
     monthlyBudget: monthlyBudget,
     categorySpentThisCycle: categorySpentThisCycle,
+    planSummary: planSummary,
   };
 })();

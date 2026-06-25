@@ -134,3 +134,28 @@ test('categorySpentThisCycle: includes excluded-from-pace items (e.g. byWife)', 
   s = Store.addTransaction(s, mkTxn('t1', '2026-05-26', 100, { isExcludedFromPace: true, byWife: true }));
   assert.strictEqual(Calc.categorySpentThisCycle(s, 'cat-x', 'c1'), 100);
 });
+test('planSummary: spent/budget/over/pct and total', () => {
+  let s = seedStateWithCycle('2026-05-25', '2026-06-24', 10000);
+  s = Store.updateCategory(s, 'cat-x', { budget: 2000, budgetPeriod: 'monthly' });
+  s = Store.addCategory(s, { id: 'cat-y', name: 'Y', icon: '•', color: '#abc', order: 1, isArchived: false, createdAt: '', budget: 6000, budgetPeriod: 'yearly' });
+  s = Store.addTransaction(s, mkTxn('t1', '2026-05-26', 1500));
+  s = Store.addTransaction(s, mkTxn('t2', '2026-05-27', 700, { categoryId: 'cat-y' }));
+  const sum = Calc.planSummary(s, 'c1');
+  const rx = sum.rows.find(r => r.categoryId === 'cat-x');
+  const ry = sum.rows.find(r => r.categoryId === 'cat-y');
+  assert.strictEqual(rx.spent, 1500);
+  assert.strictEqual(rx.monthlyBudget, 2000);
+  assert.strictEqual(rx.pct, 75);
+  assert.strictEqual(rx.over, false);
+  assert.strictEqual(ry.monthlyBudget, 500);
+  assert.strictEqual(ry.pct, 100);
+  assert.strictEqual(ry.over, true);
+  assert.strictEqual(sum.totalMonthlyPlanned, 2500);
+});
+test('planSummary: zero-budget excluded from total, archived skipped', () => {
+  let s = seedStateWithCycle('2026-05-25', '2026-06-24', 10000);
+  s = Store.addCategory(s, { id: 'cat-z', name: 'Z', icon: '•', color: '#abc', order: 1, isArchived: true, createdAt: '', budget: 999, budgetPeriod: 'monthly' });
+  const sum = Calc.planSummary(s, 'c1');
+  assert.strictEqual(sum.totalMonthlyPlanned, 0);
+  assert.ok(!sum.rows.some(r => r.categoryId === 'cat-z'));
+});

@@ -270,6 +270,20 @@ var Calc = (function () {
     return Math.round(b * 100) / 100;
   }
 
+  // Total spent on a category within a cycle. Signed (refunds subtract).
+  // Deliberately does NOT apply the isExcludedFromPace filter: the Plan page
+  // answers "what did this category cost," so a byWife/credit spend still
+  // counts against the category budget even though it is out of the daily pace.
+  function categorySpentThisCycle(state, categoryId, cycleId) {
+    var sum = 0;
+    var txns = cycleTransactions(state, cycleId);
+    for (var i = 0; i < txns.length; i++) {
+      if (txns[i].categoryId !== categoryId) continue;
+      sum += txnSignedAmount(txns[i]);
+    }
+    return Math.round(sum * 100) / 100;
+  }
+
   return {
     daysBetweenInclusive: daysBetweenInclusive,
     activeCycle: activeCycle,
@@ -284,6 +298,7 @@ var Calc = (function () {
     cycleSummary: cycleSummary,
     liabilitySummary: liabilitySummary,
     wifeSummary: wifeSummary,
-    monthlyBudget: monthlyBudget
+    monthlyBudget: monthlyBudget,
+    categorySpentThisCycle: categorySpentThisCycle,
   };
 })();

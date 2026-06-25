@@ -123,3 +123,14 @@ test('monthlyBudget: missing/zero budget is 0', () => {
   assert.strictEqual(Calc.monthlyBudget({ budgetPeriod: 'monthly' }), 0);
   assert.strictEqual(Calc.monthlyBudget({ budget: 0, budgetPeriod: 'yearly' }), 0);
 });
+test('categorySpentThisCycle: signed sum for one category in one cycle', () => {
+  let s = seedStateWithCycle('2026-05-25', '2026-06-24', 10000);
+  s = Store.addTransaction(s, mkTxn('t1', '2026-05-26', 100));
+  s = Store.addTransaction(s, mkTxn('t2', '2026-05-27', 40, { isRefund: true }));
+  assert.strictEqual(Calc.categorySpentThisCycle(s, 'cat-x', 'c1'), 60);
+});
+test('categorySpentThisCycle: includes excluded-from-pace items (e.g. byWife)', () => {
+  let s = seedStateWithCycle('2026-05-25', '2026-06-24', 10000);
+  s = Store.addTransaction(s, mkTxn('t1', '2026-05-26', 100, { isExcludedFromPace: true, byWife: true }));
+  assert.strictEqual(Calc.categorySpentThisCycle(s, 'cat-x', 'c1'), 100);
+});

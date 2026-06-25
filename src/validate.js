@@ -22,6 +22,10 @@ var Validate = (function () {
       var c = state.categories[cid];
       if (!c.id || !c.name) { errors.push('category ' + cid + ' missing id/name'); continue; }
       if (c.name.length > 32) errors.push('category ' + cid + ' name >32 chars');
+      if (c.budget !== undefined && (typeof c.budget !== 'number' || !isFinite(c.budget) || c.budget < 0))
+        errors.push('category ' + cid + ' budget must be a number >= 0');
+      if (c.budgetPeriod !== undefined && c.budgetPeriod !== 'monthly' && c.budgetPeriod !== 'yearly')
+        errors.push('category ' + cid + ' budgetPeriod must be monthly or yearly');
       var key = c.name.toLowerCase().trim();
       if (seenNames[key]) errors.push('category name duplicated: ' + c.name);
       seenNames[key] = true;

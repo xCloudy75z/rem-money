@@ -69,3 +69,30 @@ test('validate rejects a transaction whose byWife is not boolean', () => {
   s.transactions['t1'] = { id: 't1', date: '2026-06-12', amount: 10, categoryId: 'c', cycleId: 'cy', byWife: 'yes' };
   assert.strictEqual(Validate.validate(s).ok, false);
 });
+
+(function () {
+  const Validate2 = loadModule('validate.js');
+  const Store2 = loadModule('store.js');
+
+  function validBudgetState() {
+    let s = Store2.empty();
+    s = Store2.addCategory(s, { id: 'c', name: 'C', icon: '•', color: '#999', order: 0, isArchived: false, createdAt: '', budget: 100, budgetPeriod: 'monthly' });
+    s = Store2.addCycle(s, { id: 'cy', startDate: '2026-01-01', endDate: '2026-01-31', startBudget: 1000, archivedAt: null, createdAt: '' });
+    s = Store2.updateSettings(s, { activeCycleId: 'cy' });
+    return s;
+  }
+
+  test('validate: a valid category budget passes', () => {
+    assert.strictEqual(Validate2.validate(validBudgetState()).ok, true);
+  });
+  test('validate: negative budget fails', () => {
+    let s = validBudgetState();
+    s.categories.c.budget = -1;
+    assert.strictEqual(Validate2.validate(s).ok, false);
+  });
+  test('validate: bad budgetPeriod fails', () => {
+    let s = validBudgetState();
+    s.categories.c.budgetPeriod = 'weekly';
+    assert.strictEqual(Validate2.validate(s).ok, false);
+  });
+})();

@@ -108,3 +108,18 @@ test('cycleSummary computes biggest day + top categories', () => {
   assert.strictEqual(sum.biggestTxn.id, 't2');
   assert.strictEqual(sum.topCategories[0].categoryId, 'cat-x');
 });
+
+// ---- Category budgets ----
+test('monthlyBudget: monthly passes through', () => {
+  assert.strictEqual(Calc.monthlyBudget({ budget: 2000, budgetPeriod: 'monthly' }), 2000);
+});
+test('monthlyBudget: yearly divides by 12', () => {
+  assert.strictEqual(Calc.monthlyBudget({ budget: 6000, budgetPeriod: 'yearly' }), 500);
+});
+test('monthlyBudget: yearly rounds to 2dp', () => {
+  assert.strictEqual(Calc.monthlyBudget({ budget: 1000, budgetPeriod: 'yearly' }), Math.round((1000 / 12) * 100) / 100);
+});
+test('monthlyBudget: missing/zero budget is 0', () => {
+  assert.strictEqual(Calc.monthlyBudget({ budgetPeriod: 'monthly' }), 0);
+  assert.strictEqual(Calc.monthlyBudget({ budget: 0, budgetPeriod: 'yearly' }), 0);
+});

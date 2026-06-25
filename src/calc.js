@@ -258,6 +258,18 @@ var Calc = (function () {
     };
   }
 
+  // ---- Per-category budgets (planning overlay) ----
+  // Normalize a category's budget to a monthly figure. A yearly budget is the
+  // owner's natural unit (e.g. car insurance 6,000/yr); we divide to a monthly
+  // slice so progress can be compared against one cycle's spend.
+  function monthlyBudget(category) {
+    if (!category) return 0;
+    var b = Number(category.budget) || 0;
+    if (b <= 0) return 0;
+    if (category.budgetPeriod === 'yearly') return Math.round((b / 12) * 100) / 100;
+    return Math.round(b * 100) / 100;
+  }
+
   return {
     daysBetweenInclusive: daysBetweenInclusive,
     activeCycle: activeCycle,
@@ -271,6 +283,7 @@ var Calc = (function () {
     historicalLimitsByDay: historicalLimitsByDay,
     cycleSummary: cycleSummary,
     liabilitySummary: liabilitySummary,
-    wifeSummary: wifeSummary
+    wifeSummary: wifeSummary,
+    monthlyBudget: monthlyBudget
   };
 })();

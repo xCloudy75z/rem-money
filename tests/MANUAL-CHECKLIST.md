@@ -35,6 +35,19 @@ Run before any production deploy. Don't ship until everything below is ✅.
 - [ ] **Import JSON:** picks file → confirm replace → 30s undo toast → tap UNDO within 30s → original data back
 - [ ] **Reset all:** confirm dialog → wipes data → 30s undo toast → tap UNDO → data back
 
+## Planning page (per-category budgets)
+
+- [ ] **Plan tab present:** bottom tab bar shows Home · History · **Plan** (▤) · Credit; tapping Plan opens the page
+- [ ] **Total planned:** equals the sum of all categories' monthly budgets; zero-budget categories are excluded
+- [ ] **Set a budget:** tap a category → sheet shows **Budget** field + **Monthly/Yearly** toggle → save → row shows `spent / budget` with a progress bar
+- [ ] **Yearly category:** enter e.g. 6000 + Yearly → row shows the /12 monthly slice (500) in monthly view
+- [ ] **Monthly↔Annual toggle:** flipping it multiplies every figure and the total by 12 (annual) / shows monthly; progress bars unchanged
+- [ ] **Over budget:** exceed a category's monthly budget → bar turns red + "Over by X" line appears
+- [ ] **No budget:** a category with budget 0 shows "No budget set" and no bar
+- [ ] **Edit persists:** change a budget → reload → new value is retained
+- [ ] **Settings shortcut:** Settings → Categories shows a single **Manage categories** button that closes Settings and opens the Plan tab
+- [ ] **Delete category with txns:** from the Plan page, deleting a category that has spends prompts to reassign first (existing behavior preserved)
+
 ## Cycle rollover
 
 - [ ] On salary day (or after), open the app → rollover sheet auto-presents

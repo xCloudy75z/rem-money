@@ -147,3 +147,34 @@ test('migrate backfills byWife:false on legacy transactions', () => {
   const out = Migrate.migrate(input, { now: '2026-06-12T00:00:00.000Z', idGen: (p) => p + '-1', empty: Store.empty });
   assert.strictEqual(out.transactions.t1.byWife, false);
 });
+
+test('migrate back-fills budget/budgetPeriod on categories', () => {
+  const opts = {
+    now: '2026-01-01T00:00:00.000Z',
+    idGen: (p) => p + '-1',
+    empty: Store.empty,
+    get defaultCategories() { return {}; }
+  };
+  const state = {
+    schemaVersion: 1,
+    settings: { salaryDay: 25, currency: 'AED' },
+    categories: { a: { id: 'a', name: 'A' } },
+    cycles: {}, transactions: {}
+  };
+  const out = Migrate.migrate(state, opts);
+  assert.strictEqual(out.categories.a.budget, 0);
+  assert.strictEqual(out.categories.a.budgetPeriod, 'monthly');
+});
+
+test('migrate does not overwrite an existing category budget', () => {
+  const opts = { now: '2026-01-01T00:00:00.000Z', idGen: (p) => p + '-1', empty: Store.empty, get defaultCategories() { return {}; } };
+  const state = {
+    schemaVersion: 1,
+    settings: { salaryDay: 25, currency: 'AED' },
+    categories: { a: { id: 'a', name: 'A', budget: 2000, budgetPeriod: 'yearly' } },
+    cycles: {}, transactions: {}
+  };
+  const out = Migrate.migrate(state, opts);
+  assert.strictEqual(out.categories.a.budget, 2000);
+  assert.strictEqual(out.categories.a.budgetPeriod, 'yearly');
+});

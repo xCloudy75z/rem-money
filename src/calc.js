@@ -302,7 +302,7 @@ var Calc = (function () {
       var cat = cats[i];
       var mb = monthlyBudget(cat);
       var spent = categorySpentThisCycle(state, cat.id, cycleId);
-      var pct = mb > 0 ? Math.min(100, Math.round((spent / mb) * 100)) : 0;
+      var pct = mb > 0 ? Math.max(0, Math.min(100, Math.round((spent / mb) * 100))) : 0;
       var over = mb > 0 && spent > mb;
       if (mb > 0) total += mb;
       rows.push({
@@ -329,6 +329,6 @@ var Calc = (function () {
     wifeSummary: wifeSummary,
     monthlyBudget: monthlyBudget,
     categorySpentThisCycle: categorySpentThisCycle,
-    planSummary: planSummary,
+    planSummary: planSummary
   };
 })();

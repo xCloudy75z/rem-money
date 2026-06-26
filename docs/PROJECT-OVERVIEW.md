@@ -44,7 +44,7 @@ See `docs/superpowers/specs/07-product-specification.md` §Data Architecture. Su
 
 - `schemaVersion: 1` inside the payload (migrate() handles future bumps)
 - `settings` — currency, salaryDay (1–28), theme, activeCycleId, locale, lastUsedCategoryId, `localTimestamps` (true once the UTC→local timestamp migration has run)
-- `categories: {id → {name, icon, color, order, isArchived, createdAt}}`
+- `categories: {id → {name, icon, color, order, isArchived, createdAt, budget, budgetPeriod}}` (`budget` AED, `0` = none; `budgetPeriod` `monthly`|`yearly` — planning overlay, back-filled by migrate)
 - `cycles: {id → {startDate, endDate, startBudget, archivedAt, createdAt}}`
 - `transactions: {id → {cycleId, categoryId, date, amount, isRefund, isExcludedFromPace, note, createdAt, updatedAt}}`
 
@@ -120,7 +120,7 @@ v2/
 │   ├── format.js           # pure: money / date / escape / parse
 │   ├── i18n.js             # STRINGS.en + t()
 │   ├── sw.js               # service worker (copied to dist/ by build)
-│   ├── views/{home, history, pastCycle, landing}.js
+│   ├── views/{home, history, pastCycle, plan, liabilities, landing}.js
 │   ├── components/{sheet, toast, confirmDialog, entrySheet, editSheet, settingsSheet, onboardingSheet, cycleRolloverSheet, reassignSheet}.js
 │   └── styles/main.css     # all tokens + components, RTL-ready logical properties
 ├── scripts/
@@ -145,7 +145,7 @@ v2/
 
 See `docs/superpowers/specs/08-feature-inventory.md` §V2 and §Future. Highlights:
 - Arabic UI (fill `STRINGS.ar`, set `dir="rtl"`)
-- Soft per-category budgets
+- ~~Soft per-category budgets~~ ✅ **shipped 2026-06-26** — Plan tab + `budget`/`budgetPeriod`, `Calc.planSummary`; planning-only overlay (daily limit untouched). See [CHANGELOG.md](CHANGELOG.md).
 - Trend / sparkline charts (hand-rolled SVG)
 - Search, swipe-to-delete, keyboard shortcuts
 - Cloud sync (Supabase/Firebase) via the existing JSON envelope as wire format

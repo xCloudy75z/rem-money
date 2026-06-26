@@ -65,14 +65,37 @@ Tap **"Start next cycle · same budget"** and you're set. The old cycle is archi
 
 If your salary changed, tap **"Start with a different budget"** instead.
 
+## Planning your budgets
+
+Tap **Plan** in the bottom tab bar.
+
+This is where you set a budget per category and see how you're tracking.
+
+- **Set a budget:** tap a category → type the amount → choose **Monthly** or **Yearly** → Save.
+  Got a yearly bill (e.g. car insurance 6,000/year)? Enter `6000` and pick **Yearly** — the app shows
+  you the monthly slice (500) automatically. You never do the math.
+- **Progress bars:** each category shows `spent this cycle / budget`. The bar turns **red** with an
+  "Over by X" line if you go over.
+- **Monthly / Annual toggle** (top): flip it to see every budget — and the totals — as monthly or
+  yearly amounts. It's just a view switch; it doesn't change anything.
+- **Total planned:** the sum of all your category budgets.
+- **Unallocated (💰, pinned at the top):** your **cycle budget minus everything you've budgeted**.
+  This is money you haven't assigned to a category yet. It turns red ("Over-allocated") if your
+  category budgets add up to more than your cycle budget.
+- **Manage categories here:** add, rename, recolor, or delete categories on this page (the old
+  Settings → Categories is now just a shortcut here).
+
+Budgets are a planning tool — they do **not** change the "left today" number on Home.
+
 ## Settings
 
 Tap the **⚙ gear** (top right).
 
 - **Cycle:** change your budget or salary day
-- **Categories:** add, rename, delete, reorder. Can't delete a category that has spends — reassign first.
+- **Categories:** a shortcut to the **Plan** page, where you add, rename, recolor, delete, and budget categories. Can't delete a category that has spends — reassign first.
 - **Display:** Light / Dark / Auto theme · currency label
 - **Backup:** Export JSON (your safety net) · Import (restore) · Export CSV (for Excel)
+- **App → ↻ Refresh app:** force-loads the latest version (clears the cached copy and reloads). Use it after an update instead of reinstalling — your data is kept.
 - **Reset all data:** wipes everything. Has a 30-second UNDO.
 
 ## Backups

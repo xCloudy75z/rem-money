@@ -10,6 +10,7 @@ When a new version of Spending Tracker goes live:
 
 1. **Your transactions stay.** They're stored in your phone's browser storage (`localStorage`), not on the website. Updating the website doesn't touch your phone.
 2. **You'll see a small "A new version is available · Reload" toast** the next time you open the app. Tap Reload to get the new version. Or ignore it — the old version keeps working.
+   - If the toast doesn't appear (the phone is stubborn about cached app icons), open **⚙ Settings → App → ↻ Refresh app**. It force-loads the latest version and reloads — your data is kept. No need to remove and re-add the home-screen icon.
 3. **If anything looks wrong after an update**, you can:
    - Tap **Settings → Backup → Export JSON backup** (do this *now* as a habit — see below)
    - Reinstall from the URL → Import the JSON backup → you're back

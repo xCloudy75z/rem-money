@@ -44,9 +44,17 @@ Run before any production deploy. Don't ship until everything below is ✅.
 - [ ] **Monthly↔Annual toggle:** flipping it multiplies every figure and the total by 12 (annual) / shows monthly; progress bars unchanged
 - [ ] **Over budget:** exceed a category's monthly budget → bar turns red + "Over by X" line appears
 - [ ] **No budget:** a category with budget 0 shows "No budget set" and no bar
+- [ ] **Unallocated row:** a pinned 💰 "Unallocated" row sits at the top (not editable, no × delete) showing `cycle budget − total budgeted`; the Total planned card also shows an "Unallocated: X" line
+- [ ] **Over-allocated:** budget categories beyond the cycle budget → both the row and the card line turn red and read "Over-allocated by X"
+- [ ] **Unallocated follows the toggle:** flipping Monthly↔Annual scales the unallocated figure ×12 too
 - [ ] **Edit persists:** change a budget → reload → new value is retained
 - [ ] **Settings shortcut:** Settings → Categories shows a single **Manage categories** button that closes Settings and opens the Plan tab
 - [ ] **Delete category with txns:** from the Plan page, deleting a category that has spends prompts to reassign first (existing behavior preserved)
+
+## App update + sheets
+
+- [ ] **Refresh app:** Settings → App → **↻ Refresh app** shows "Getting the latest version…", reloads, and keeps all data
+- [ ] **Sheet close (×):** open any sheet (Settings, entry, edit) and tap the **×** icon itself → the sheet closes (not just clicking outside/the scrim)
 
 ## Cycle rollover
 

@@ -152,6 +152,22 @@ test('planSummary: spent/budget/over/pct and total', () => {
   assert.strictEqual(ry.over, true);
   assert.strictEqual(sum.totalMonthlyPlanned, 2500);
 });
+test('planSummary: exposes cycleBudget and unallocated (budget − total)', () => {
+  let s = seedStateWithCycle('2026-05-25', '2026-06-24', 10000);
+  s = Store.updateCategory(s, 'cat-x', { budget: 2000, budgetPeriod: 'monthly' });
+  s = Store.addCategory(s, { id: 'cat-y', name: 'Y', icon: '•', color: '#abc', order: 1, isArchived: false, createdAt: '', budget: 6000, budgetPeriod: 'yearly' });
+  const sum = Calc.planSummary(s, 'c1');
+  assert.strictEqual(sum.cycleBudget, 10000);
+  assert.strictEqual(sum.totalMonthlyPlanned, 2500);
+  assert.strictEqual(sum.unallocated, 7500);
+});
+test('planSummary: unallocated goes negative when over-allocated', () => {
+  let s = seedStateWithCycle('2026-05-25', '2026-06-24', 1000);
+  s = Store.updateCategory(s, 'cat-x', { budget: 2000, budgetPeriod: 'monthly' });
+  const sum = Calc.planSummary(s, 'c1');
+  assert.strictEqual(sum.cycleBudget, 1000);
+  assert.strictEqual(sum.unallocated, -1000);
+});
 test('planSummary: zero-budget excluded from total, archived skipped', () => {
   let s = seedStateWithCycle('2026-05-25', '2026-06-24', 10000);
   s = Store.addCategory(s, { id: 'cat-z', name: 'Z', icon: '•', color: '#abc', order: 1, isArchived: true, createdAt: '', budget: 999, budgetPeriod: 'monthly' });

@@ -5,6 +5,21 @@ Notable changes to Spending Tracker 2.0. Newest first.
 ## 2026-06-26
 
 ### Added
+- **Unallocated-budget readout on the Plan page.** A pinned, non-editable "Unallocated" row (💰) at
+  the top of the list plus an "Unallocated: X" line in the Total planned card, showing
+  `cycle budget − total budgeted`. Turns red ("Over-allocated by X") when category budgets exceed the
+  cycle budget; follows the Monthly/Annual toggle. `Calc.planSummary` now also returns `cycleBudget`
+  and `unallocated`.
+- **"Refresh app" button (Settings → App).** Forces the latest deployed version: clears the cached
+  app shell, updates the service worker, and reloads — your data is kept. Avoids removing and
+  re-adding the home-screen icon after a deploy.
+
+### Fixed
+- **Sheet X button.** Tapping the close (×) icon now closes the sheet — the click previously landed on
+  the inner SVG, which wasn't matched. Affected every sheet (Settings, entry, edit, …). Now matches
+  the nearest `[data-close]` ancestor.
+
+### Added
 - **Per-category budgets + Planning page.** Set a monthly or yearly budget per category and see how
   this cycle's spend tracks against it. A planning-only overlay — it does **not** change the daily
   "left today" limit or pace.

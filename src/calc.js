@@ -296,6 +296,8 @@ var Calc = (function () {
       cats.push(c);
     }
     cats.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    var cycle = state.cycles && state.cycles[cycleId];
+    var cycleBudget = (cycle && Number(cycle.startBudget)) || 0;
     var rows = [];
     var total = 0;
     for (var i = 0; i < cats.length; i++) {
@@ -310,7 +312,13 @@ var Calc = (function () {
         order: cat.order, spent: spent, monthlyBudget: mb, pct: pct, over: over
       });
     }
-    return { rows: rows, totalMonthlyPlanned: Math.round(total * 100) / 100 };
+    var totalPlanned = Math.round(total * 100) / 100;
+    return {
+      rows: rows,
+      totalMonthlyPlanned: totalPlanned,
+      cycleBudget: cycleBudget,
+      unallocated: Math.round((cycleBudget - totalPlanned) * 100) / 100
+    };
   }
 
   return {

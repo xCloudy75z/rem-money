@@ -75,6 +75,12 @@ var SettingsSheet = (function () {
       + '</div>'
 
       + '<div class="settings-section">'
+      +   '<h3>' + I18n.t('app_section') + '</h3>'
+      +   '<button class="btn btn-block" data-action="refresh-app">' + I18n.t('refresh_app') + '</button>'
+      +   '<p style="color:var(--muted);font-size:12px;margin-top:10px;line-height:1.5">' + I18n.t('refresh_app_help') + '</p>'
+      + '</div>'
+
+      + '<div class="settings-section">'
       +   '<h3>' + I18n.t('danger_zone') + '</h3>'
       +   '<button class="btn btn-danger btn-block" data-action="reset-all">' + I18n.t('reset_all') + '</button>'
       + '</div>'
@@ -150,6 +156,10 @@ var SettingsSheet = (function () {
       if (action === 'export-csv') { callbacks.onExportCSV(); return; }
       if (action === 'import-json') {
         wrap.querySelector('#ss-import-input').click();
+        return;
+      }
+      if (action === 'refresh-app') {
+        callbacks.onRefreshApp();
         return;
       }
       if (action === 'reset-all') {

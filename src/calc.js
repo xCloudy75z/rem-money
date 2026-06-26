@@ -258,6 +258,61 @@ var Calc = (function () {
     };
   }
 
+  // ---- Per-category budgets (planning overlay) ----
+  // Normalize a category's budget to a monthly figure. A yearly budget is the
+  // owner's natural unit (e.g. car insurance 6,000/yr); we divide to a monthly
+  // slice so progress can be compared against one cycle's spend.
+  function monthlyBudget(category) {
+    if (!category) return 0;
+    var b = Number(category.budget) || 0;
+    if (b <= 0) return 0;
+    if (category.budgetPeriod === 'yearly') return Math.round((b / 12) * 100) / 100;
+    return Math.round(b * 100) / 100;
+  }
+
+  // Total spent on a category within a cycle. Signed (refunds subtract).
+  // Deliberately does NOT apply the isExcludedFromPace filter: the Plan page
+  // answers "what did this category cost," so a byWife/credit spend still
+  // counts against the category budget even though it is out of the daily pace.
+  function categorySpentThisCycle(state, categoryId, cycleId) {
+    var sum = 0;
+    var txns = cycleTransactions(state, cycleId);
+    for (var i = 0; i < txns.length; i++) {
+      if (txns[i].categoryId !== categoryId) continue;
+      sum += txnSignedAmount(txns[i]);
+    }
+    return Math.round(sum * 100) / 100;
+  }
+
+  // Build the Plan-page model: one row per non-archived category (sorted by
+  // order) with its monthly budget, this-cycle spend, percent, and over flag,
+  // plus the total of all monthly budgets. Zero-budget categories are still
+  // listed (so they can be edited) but contribute nothing to the total.
+  function planSummary(state, cycleId) {
+    var cats = [];
+    for (var id in (state.categories || {})) {
+      var c = state.categories[id];
+      if (!c || c.isArchived) continue;
+      cats.push(c);
+    }
+    cats.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    var rows = [];
+    var total = 0;
+    for (var i = 0; i < cats.length; i++) {
+      var cat = cats[i];
+      var mb = monthlyBudget(cat);
+      var spent = categorySpentThisCycle(state, cat.id, cycleId);
+      var pct = mb > 0 ? Math.max(0, Math.min(100, Math.round((spent / mb) * 100))) : 0;
+      var over = mb > 0 && spent > mb;
+      if (mb > 0) total += mb;
+      rows.push({
+        categoryId: cat.id, name: cat.name, icon: cat.icon, color: cat.color,
+        order: cat.order, spent: spent, monthlyBudget: mb, pct: pct, over: over
+      });
+    }
+    return { rows: rows, totalMonthlyPlanned: Math.round(total * 100) / 100 };
+  }
+
   return {
     daysBetweenInclusive: daysBetweenInclusive,
     activeCycle: activeCycle,
@@ -271,6 +326,9 @@ var Calc = (function () {
     historicalLimitsByDay: historicalLimitsByDay,
     cycleSummary: cycleSummary,
     liabilitySummary: liabilitySummary,
-    wifeSummary: wifeSummary
+    wifeSummary: wifeSummary,
+    monthlyBudget: monthlyBudget,
+    categorySpentThisCycle: categorySpentThisCycle,
+    planSummary: planSummary
   };
 })();

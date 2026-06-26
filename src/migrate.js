@@ -122,6 +122,16 @@ var Migrate = (function () {
       if (t.byWife === undefined) t.byWife = false;
     }
 
+    // Backfill per-category budget fields so categories created before the
+    // Planning feature (and old JSON backups) load cleanly. Idempotent.
+    var pcats = s.categories || {};
+    for (var pcid in pcats) {
+      var pc = pcats[pcid];
+      if (!pc) continue;
+      if (pc.budget === undefined) pc.budget = 0;
+      if (pc.budgetPeriod === undefined) pc.budgetPeriod = 'monthly';
+    }
+
     // Wife reimbursement ledger: initialize the collection if this state predates
     // the feature (or came from an old JSON backup). Idempotent.
     if (!s.wifePayments || typeof s.wifePayments !== 'object') s.wifePayments = {};

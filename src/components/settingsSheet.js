@@ -32,14 +32,6 @@ var SettingsSheet = (function () {
 
   function _render(state) {
     var cyc = Calc.activeCycle(state);
-    var cats = Object.values(state.categories)
-      .filter(function (c) { return !c.isArchived; })
-      .sort(function (a, b) { return a.order - b.order; });
-    var txnCounts = {};
-    for (var tid in state.transactions) {
-      var cid = state.transactions[tid].categoryId;
-      txnCounts[cid] = (txnCounts[cid] || 0) + 1;
-    }
     var theme = state.settings.theme;
 
     return ''
@@ -52,15 +44,7 @@ var SettingsSheet = (function () {
 
       + '<div class="settings-section">'
       +   '<h3>' + I18n.t('categories') + '</h3>'
-      +   cats.map(function (c) {
-          return '<div class="category-row">'
-            + '<span class="grab" aria-hidden="true">⋮⋮</span>'
-            + '<button class="cat-edit" data-action="edit-cat" data-cat-id="' + c.id + '" style="text-align:start;background:none;border:none;color:var(--text);padding:0">' + Format.escapeHTML(c.icon || '•') + ' ' + Format.escapeHTML(c.name) + '</button>'
-            + '<span class="right">' + I18n.t('cat_count', { n: txnCounts[c.id] || 0 }) + '</span>'
-            + '<button class="del-cat" data-action="delete-cat" data-cat-id="' + c.id + '" aria-label="Delete">×</button>'
-            + '</div>';
-        }).join('')
-      +   '<button class="btn btn-ghost btn-block" data-action="add-cat" style="margin-top:6px">' + I18n.t('add_category') + '</button>'
+      +   '<button class="btn btn-ghost btn-block" data-action="manage-categories">' + I18n.t('manage_categories') + '</button>'
       + '</div>'
 
       + '<div class="settings-section">'
@@ -144,53 +128,9 @@ var SettingsSheet = (function () {
         });
         return;
       }
-      if (action === 'add-cat') {
-        CategorySheet.open({
-          title: I18n.t('add_category').replace(/^\+\s*/, ''),
-          initial: { name: '', icon: '•', color: '#5ab19a' },
-          onSave: function (input) {
-            try { state = callbacks.onAddCategory(input); }
-            catch (err) { Toast.show({ message: err.message, variant: 'error' }); }
-          },
-          onClose: reopenSelf
-        });
-        return;
-      }
-      if (action === 'edit-cat') {
-        var cid = btn.getAttribute('data-cat-id');
-        var cat = state.categories[cid];
-        CategorySheet.open({
-          title: 'Edit category',
-          initial: { name: cat.name, icon: cat.icon, color: cat.color },
-          onSave: function (input) {
-            try { state = callbacks.onUpdateCategory(cid, input); }
-            catch (err) { Toast.show({ message: err.message, variant: 'error' }); }
-          },
-          onClose: reopenSelf
-        });
-        return;
-      }
-      if (action === 'delete-cat') {
-        var cid2 = btn.getAttribute('data-cat-id');
-        var refCount = Object.values(state.transactions).filter(function (x) { return x.categoryId === cid2; }).length;
-        if (refCount === 0) {
-          state = callbacks.onDeleteCategory(cid2);
-          rerender();
-          return;
-        }
-        var others = Object.values(state.categories).filter(function (c) { return c.id !== cid2 && !c.isArchived; });
-        if (others.length === 0) {
-          Toast.show({ message: 'Add another category first.', variant: 'error' });
-          return;
-        }
-        ReassignSheet.open({
-          others: others,
-          refCount: refCount,
-          onPick: function (newCatId) {
-            state = callbacks.onReassignAndDelete(cid2, newCatId);
-          },
-          onClose: reopenSelf
-        });
+      if (action === 'manage-categories') {
+        Sheet.close();
+        callbacks.onManageCategories();
         return;
       }
       if (action === 'theme') {

@@ -15,7 +15,8 @@ var Seed = (function () {
       var id = idGen('cat-' + i);
       map[id] = {
         id: id, name: c.name, icon: c.icon, color: c.color,
-        order: c.order, isArchived: false, createdAt: nowISO
+        order: c.order, isArchived: false, createdAt: nowISO,
+        budget: 0, budgetPeriod: 'monthly'
       };
     });
     return map;

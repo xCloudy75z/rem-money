@@ -271,3 +271,18 @@ html[dir="rtl"] body { font-family: -apple-system, BlinkMacSystemFont, "SF Arabi
   .sheet-wrap, .dialog-wrap { max-width: 440px; margin-inline: auto; left: 50%; transform: translateX(-50%); right: auto; width: 100%; }
   #toast-root { left: 50%; transform: translateX(-50%); right: auto; width: 440px; }
 }
+
+/* ===== Plan page ===== */
+.plan-list { list-style: none; margin: 0; padding: 0; }
+.plan-row { padding: 12px 0; border-bottom: 1px solid rgba(128,128,128,.15); }
+.plan-row:last-child { border-bottom: none; }
+.plan-row-head { display: flex; align-items: center; gap: 10px; }
+.plan-name { flex: 1; font-weight: 600; font-size: 14px; }
+.plan-amounts { font-size: 13px; white-space: nowrap; }
+.plan-amounts .muted { color: var(--muted); font-weight: 400; }
+.plan-row .bar { margin-top: 8px; height: 6px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+.plan-row .bar > div { height: 100%; }
+.plan-row-head .cat-dot { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; flex: 0 0 auto; }
+.plan-over { color: #e74c3c; font-size: 12px; margin-top: 4px; }
+.plan-unit-seg { transform: scale(.9); transform-origin: center; }
+.plan-row .del-cat { background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 4px; }

@@ -57,7 +57,9 @@ var Sheet = (function () {
     current.onKey = onKey;
 
     wrap.addEventListener('click', function (e) {
-      if (e.target.hasAttribute && e.target.hasAttribute('data-close')) close();
+      // Use closest() so a click on a child of a [data-close] element (e.g. the
+      // SVG icon inside the X button) still closes the sheet.
+      if (e.target.closest && e.target.closest('[data-close]')) close();
     });
 
     return wrap;

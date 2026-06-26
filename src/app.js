@@ -532,6 +532,7 @@ var App = (function () {
         persist(); render(); return state;
       },
       onManageCategories: function () { ui.tab = 'plan'; render(); },
+      onRefreshApp: function () { _refreshApp(); },
       onTheme: function (theme) {
         state = Store.updateSettings(state, { theme: theme });
         _applyTheme(theme);
@@ -605,6 +606,34 @@ var App = (function () {
         setTimeout(function () { OnboardingSheet.open(_onOnboardingComplete); }, 800);
       }
     });
+  }
+
+  // ===== Force-refresh to the latest deployed version =====
+  // The service worker caches the app shell, so after a deploy the user can be
+  // stuck on an old build. This drops the caches and asks the SW to update, then
+  // reloads — so the next load fetches the freshly deployed files. Data in
+  // localStorage is untouched. Guarded so we reload exactly once.
+  function _refreshApp() {
+    Toast.show({ message: I18n.t('toast_refreshing') });
+    var reloaded = false;
+    function done() { if (reloaded) return; reloaded = true; location.reload(); }
+
+    var clearCaches = (window.caches && caches.keys)
+      ? caches.keys().then(function (keys) {
+          return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+        }).catch(function () {})
+      : Promise.resolve();
+
+    var updateSW = ('serviceWorker' in navigator)
+      ? navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (!reg) return;
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          return reg.update();
+        }).catch(function () {})
+      : Promise.resolve();
+
+    Promise.all([clearCaches, updateSW]).then(done, done);
+    setTimeout(done, 1500); // safety net if a promise stalls (e.g. offline)
   }
 
   // ===== Service worker =====

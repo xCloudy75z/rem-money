@@ -2,6 +2,33 @@
 
 Notable changes to Spending Tracker 2.0. Newest first.
 
+## 2026-06-26
+
+### Added
+- **Per-category budgets + Planning page.** Set a monthly or yearly budget per category and see how
+  this cycle's spend tracks against it. A planning-only overlay — it does **not** change the daily
+  "left today" limit or pace.
+  - **Data:** categories gain `budget` (AED, `0` = none) and `budgetPeriod` (`monthly`|`yearly`).
+    Back-filled on load by `Migrate` (idempotent, **no schema bump** — old backups load cleanly);
+    `Validate` enforces `budget ≥ 0` and a valid period.
+  - **Calc:** `Calc.monthlyBudget` normalizes a yearly budget to its monthly slice (÷12);
+    `Calc.categorySpentThisCycle` sums a category's signed spend in the active cycle (includes
+    byWife/credit spends — it answers "what did this category cost"); `Calc.planSummary` builds the
+    page model (rows + `totalMonthlyPlanned`). All pure, `lint:pure` clean.
+  - **Plan tab:** new 4th tab (Home · History · **Plan** · Credit) listing each category with a
+    spent-vs-budget progress bar (red + "Over by X" when exceeded), a "Total planned" header, and a
+    global **Monthly/Annual** display toggle (×12). Zero-budget categories show "No budget set" and
+    are excluded from the total.
+  - **Category management consolidated:** add/rename/icon/color/delete/reassign + budget now live on
+    the Plan page; the category sheet gains a Budget field and a Monthly/Yearly toggle. Settings →
+    Categories is now a single "Manage categories" shortcut to the Plan tab.
+  - **i18n:** full EN + AR strings.
+  - **Tests:** new calc/migrate/validate/seed coverage — **278 tests**.
+  - **Process:** brainstormed (with visual mockups) → spec → 12-task TDD plan
+    (`docs/superpowers/specs/` + `docs/superpowers/plans/`) → subagent-per-task implementation →
+    5-dimension adversarial review workflow (6 findings, all fixed).
+  - Shipped to `main` (merge `a01296a`) and deployed **live** via GitHub Pages CI.
+
 ## 2026-06-12
 
 ### Added

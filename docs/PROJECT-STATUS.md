@@ -1,10 +1,10 @@
 # Project Status — Spending Tracker 2.0
 
-**Last updated:** 2026-06-12
+**Last updated:** 2026-06-26
 
 ## V1 status: ✅ SHIPPED & DEPLOYED
 
-All 8 layers complete. 264/264 tests green. Lint clean. Built artifact: ~130 KB inlined HTML + 2 KB service worker.
+All 8 layers complete. 278/278 tests green. Lint clean. Built artifact: ~130 KB inlined HTML + 2 KB service worker.
 
 **Live:** https://xcloudy75z.github.io/rem-money/ — auto-deployed by CI on every push to `main`.
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHANGELOG.md) for recent changes.
@@ -29,6 +29,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHAN
 |---|---|---|
 | 2026-06-10 | **Credit (liability) tracker** | Tag spends "on credit"; new Credit tab tracks total owed across cycles with per-item + bulk "Paid" settlement. Additive fields (`isCredit`/`liabilitySettled`/`settledAt`), back-filled by migrate, no schema bump. Commit `e2164eb`. See [CHANGELOG.md](CHANGELOG.md). |
 | 2026-06-12 | **Wife reimbursement tracker** | Tag spends `byWife` (forced on-credit + out-of-pace); new top-level `wifePayments` ledger; `Calc.wifeSummary` derives her `charged − paid` balance. "Wife owes you" card on the Credit tab with lump-sum + per-item "She paid" reimbursements. Additive, no schema bump, back-filled by migrate. 176 → 264 tests. Commits `9d39738`…`4060475`, deployed live via CI. See [CHANGELOG.md](CHANGELOG.md). |
+| 2026-06-26 | **Per-category budgets + Planning page** | Categories gain `budget`/`budgetPeriod` (`monthly`/`yearly`); new **Plan** tab (4th) lists categories with spent-this-cycle progress bars + a Monthly/Annual ×12 toggle; `Calc.monthlyBudget`/`categorySpentThisCycle`/`planSummary` (pure). Planning-only — daily limit/pace untouched. Category management consolidated onto the Plan page; Settings keeps a shortcut. Additive, no schema bump, back-filled by migrate. 264 → 278 tests. Merge `a01296a`, deployed live via CI. See [CHANGELOG.md](CHANGELOG.md). |
 
 ## Deploy state
 
@@ -71,3 +72,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHAN
 | Credit spends still count toward budget/pace | "On credit" only adds a liability total; it does not exclude the spend from the daily limit | 2026-06-10 |
 | Wife spends excluded from pace, counted in bank-credit | `byWife` forces `isExcludedFromPace`+`isCredit`; stays out of your daily limit but counts toward what you owe the bank | 2026-06-12 |
 | Wife reimbursement is an aggregate balance | `charged − paid` (no per-item settled flag); "She paid" just pre-fills a `wifePayment` amount | 2026-06-12 |
+| Category budgets are a planning-only overlay | `budget`/`budgetPeriod` on categories; the Plan page shows spent-vs-budget but never affects the daily limit or pace | 2026-06-26 |
+| Budgets stored in their native period; toggle is display-only | `budgetPeriod` `monthly`/`yearly`; `Calc.monthlyBudget` ÷12 for yearly; the Monthly/Annual toggle is pure ×12 display | 2026-06-26 |
+| Per-category spend counts the cycle, includes byWife/credit | `categorySpentThisCycle` is signed and unfiltered — answers "what did this category cost," not "what counts toward pace" | 2026-06-26 |
+| Category management lives on the Plan page | Add/edit/delete/reassign + budget consolidated there; Settings → Categories is a shortcut | 2026-06-26 |

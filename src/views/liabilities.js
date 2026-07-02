@@ -21,19 +21,25 @@ var LiabilitiesView = (function () {
       + '</li>';
   }
 
-  function _wifePurchaseRow(t, state) {
+  // A wife purchase row. When `settled`, it shows in the Reimbursed section with
+  // an Undo button; otherwise it is still owed and shows the "She paid" button
+  // that marks THIS purchase reimbursed (no separate payment record is created).
+  function _wifePurchaseRow(t, state, settled) {
     var cat = state.categories[t.categoryId] || { name: '—', icon: '•', color: '#999' };
     var when = Format.fmtDateShort(t.date);
     var sub = when + (t.note ? ' · ' + Format.escapeHTML(t.note) : '');
     var amount = (t.isRefund ? '−' : '') + Number(t.amount).toFixed(2);
-    return '<li class="txn credit-row" data-edit-id="' + t.id + '">'
+    var btn = settled
+      ? '<button class="btn btn-ghost btn-sm credit-action" data-action="mark-wife-unpaid" data-liab-id="' + t.id + '">' + I18n.t('wife_undo_settle') + '</button>'
+      : '<button class="btn btn-primary btn-sm credit-action" data-action="mark-wife-paid" data-liab-id="' + t.id + '">' + I18n.t('wife_she_paid') + '</button>';
+    return '<li class="txn credit-row' + (settled ? ' credit-settled' : '') + '" data-edit-id="' + t.id + '">'
       +   '<span class="cat-dot" style="background:' + cat.color + '33;color:' + cat.color + '">' + Format.escapeHTML(cat.icon || '•') + '</span>'
       +   '<div class="main">'
       +     '<div class="top-line">' + Format.escapeHTML(cat.name) + (t.isRefund ? ' · Refund' : '') + '</div>'
       +     '<div class="bot-line">' + sub + '</div>'
       +   '</div>'
       +   '<div class="amount ' + (t.isRefund ? 'refund' : '') + '">' + amount + '</div>'
-      +   '<button class="btn btn-ghost btn-sm" data-action="wife-prefill-pay" data-amount="' + Number(t.amount).toFixed(2) + '">' + I18n.t('wife_she_paid') + '</button>'
+      +   btn
       + '</li>';
   }
 
@@ -91,7 +97,12 @@ var LiabilitiesView = (function () {
 
     var wifePurchasesHTML = wife.purchases.length
       ? '<div class="section-h">' + I18n.t('wife_purchases_section') + '</div>'
-        + '<ul class="txn-list">' + wife.purchases.map(function (t) { return _wifePurchaseRow(t, state); }).join('') + '</ul>'
+        + '<ul class="txn-list">' + wife.purchases.map(function (t) { return _wifePurchaseRow(t, state, false); }).join('') + '</ul>'
+      : '';
+
+    var wifeReimbursedHTML = wife.settledPurchases.length
+      ? '<div class="section-h">' + I18n.t('wife_reimbursed_section') + '</div>'
+        + '<ul class="txn-list">' + wife.settledPurchases.map(function (t) { return _wifePurchaseRow(t, state, true); }).join('') + '</ul>'
       : '';
 
     var wifePaymentsHTML = wife.payments.length
@@ -99,8 +110,8 @@ var LiabilitiesView = (function () {
         + '<ul class="txn-list">' + wife.payments.map(function (p) { return _wifePaymentRow(p, currency); }).join('') + '</ul>'
       : '';
 
-    var wifeSection = (wife.purchases.length || wife.payments.length || wife.balance !== 0)
-      ? wifeCard + wifePurchasesHTML + wifePaymentsHTML
+    var wifeSection = (wife.purchases.length || wife.settledPurchases.length || wife.payments.length || wife.balance !== 0)
+      ? wifeCard + wifePurchasesHTML + wifeReimbursedHTML + wifePaymentsHTML
       : '';
 
     var unpaidHTML = sum.items.length

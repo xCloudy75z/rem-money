@@ -71,6 +71,46 @@ test('wifeSummary: handles a state with no wifePayments key (defensive)', () => 
   assert.strictEqual(Calc.wifeSummary(s).balance, 60);
 });
 
+// ---- Per-item settle (the "She paid" button marks THAT purchase reimbursed) ----
+
+test('wifeSummary: a settled purchase leaves the owed list and drops the balance', () => {
+  const s = stateWith([
+    mkTxn('t1', 50.40, { byWife: true, isCredit: true, wifeSettled: true }),
+    mkTxn('t2', 22.00, { byWife: true, isCredit: true })
+  ], []);
+  const sum = Calc.wifeSummary(s);
+  // only the unsettled purchase is still owed:
+  assert.strictEqual(sum.purchases.length, 1);
+  assert.strictEqual(sum.purchases[0].id, 't2');
+  // the settled one moves into its own list:
+  assert.strictEqual(sum.settledPurchases.length, 1);
+  assert.strictEqual(sum.settledPurchases[0].id, 't1');
+  // balance reflects only what is still owed — no duplication:
+  assert.strictEqual(sum.balance, 22.00);
+});
+
+test('wifeSummary: settling every purchase yields a zero balance with no payment records', () => {
+  const s = stateWith([
+    mkTxn('t1', 50.40, { byWife: true, isCredit: true, wifeSettled: true })
+  ], []);
+  const sum = Calc.wifeSummary(s);
+  assert.strictEqual(sum.balance, 0);
+  // settling does NOT spawn a wifePayment (that was the duplication bug):
+  assert.strictEqual(sum.payments.length, 0);
+});
+
+test('Store.setWifeSettled marks a purchase reimbursed and back', () => {
+  let s = stateWith([mkTxn('t1', 50.40, { byWife: true, isCredit: true })], []);
+  s = Store.setWifeSettled(s, 't1', true, '2026-07-01T10:00:00.000Z');
+  assert.strictEqual(s.transactions['t1'].wifeSettled, true);
+  assert.strictEqual(s.transactions['t1'].wifeSettledAt, '2026-07-01T10:00:00.000Z');
+  assert.strictEqual(Calc.wifeSummary(s).balance, 0);
+  s = Store.setWifeSettled(s, 't1', false, '2026-07-01T10:00:00.000Z');
+  assert.strictEqual(s.transactions['t1'].wifeSettled, false);
+  assert.strictEqual(s.transactions['t1'].wifeSettledAt, null);
+  assert.strictEqual(Calc.wifeSummary(s).balance, 50.40);
+});
+
 test('invariant: a byWife credit spend counts in liabilitySummary but is excluded from pace', () => {
   // byWife spends are stored via Store.addTransaction, which forces the flags.
   let s = Store.empty();

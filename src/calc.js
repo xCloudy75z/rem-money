@@ -224,15 +224,19 @@ var Calc = (function () {
   // bank-credit total; SEPARATELY the wife owes the user for it. Her balance is
   // derived: charged (signed, so a wife refund reduces it) minus her payments.
   function wifeSummary(state) {
-    var purchases = [];
-    var charged = 0;
+    var purchases = [];          // still owed (unsettled)
+    var settledPurchases = [];   // reimbursed via the per-item "She paid" button
+    var charged = 0;             // total she ever charged (signed, all purchases)
+    var settledSum = 0;          // portion already settled per-item (signed)
     for (var tid in state.transactions) {
       var t = state.transactions[tid];
       if (!t || !t.byWife) continue;
-      purchases.push(t);
-      charged += txnSignedAmount(t);
+      var signed = txnSignedAmount(t);
+      charged += signed;
+      if (t.wifeSettled) { settledPurchases.push(t); settledSum += signed; }
+      else { purchases.push(t); }
     }
-    var payments = [];
+    var payments = [];           // legacy lump-sum payments ("Record payment")
     var paid = 0;
     var wp = state.wifePayments || {};
     for (var pid in wp) {
@@ -247,13 +251,20 @@ var Calc = (function () {
     }
     purchases.sort(_byDateDesc);
     payments.sort(_byDateDesc);
+    settledPurchases.sort(function (a, b) {
+      return (b.wifeSettledAt || '').localeCompare(a.wifeSettledAt || '') || _byDateDesc(a, b);
+    });
     charged = Math.round(charged * 100) / 100;
     paid = Math.round(paid * 100) / 100;
+    // What is still owed: everything charged, minus what she settled per-item,
+    // minus any legacy lump-sum payments she made.
+    var balance = Math.round((charged - settledSum - paid) * 100) / 100;
     return {
       charged: charged,
       paid: paid,
-      balance: Math.round((charged - paid) * 100) / 100,
+      balance: balance,
       purchases: purchases,
+      settledPurchases: settledPurchases,
       payments: payments
     };
   }

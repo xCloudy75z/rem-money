@@ -295,8 +295,10 @@ var App = (function () {
     if (payAll) { _markAllLiabilitiesPaid(); return; }
     var recordWifePay = e.target.closest('[data-action="record-wife-payment"]');
     if (recordWifePay) { _openWifePayment(null); return; }
-    var prefillWifePay = e.target.closest('[data-action="wife-prefill-pay"]');
-    if (prefillWifePay) { _openWifePayment(Number(prefillWifePay.getAttribute('data-amount'))); return; }
+    var wifePaidBtn = e.target.closest('[data-action="mark-wife-paid"]');
+    if (wifePaidBtn) { _markWifeSettled(wifePaidBtn.getAttribute('data-liab-id'), true); return; }
+    var wifeUnpaidBtn = e.target.closest('[data-action="mark-wife-unpaid"]');
+    if (wifeUnpaidBtn) { _markWifeSettled(wifeUnpaidBtn.getAttribute('data-liab-id'), false); return; }
     var removeWifePay = e.target.closest('[data-action="remove-wife-payment"]');
     if (removeWifePay) { _removeWifePayment(removeWifePay.getAttribute('data-payment-id')); return; }
     var editRow = e.target.closest('[data-edit-id]');
@@ -316,7 +318,7 @@ var App = (function () {
       createdAt: now, updatedAt: now,
       isExcludedFromPace: false,
       isCredit: false, liabilitySettled: false, settledAt: null,
-      byWife: false
+      byWife: false, wifeSettled: false, wifeSettledAt: null
     }, txnInput);
     state = Store.addTransaction(state, txn);
     state = Store.updateSettings(state, { lastUsedCategoryId: txn.categoryId });
@@ -440,6 +442,31 @@ var App = (function () {
         });
       }
     });
+  }
+
+  // "She paid" on a purchase marks THAT purchase reimbursed (moves it to the
+  // Reimbursed section) — it no longer spawns a separate payment record, which
+  // was what made amounts look duplicated and still-owed.
+  function _markWifeSettled(id, settled) {
+    var txn = state.transactions[id];
+    if (!txn) return;
+    state = Store.setWifeSettled(state, id, settled, nowISO());
+    persist(); render();
+    var bal = Calc.wifeSummary(state).balance;
+    var money = Format.fmtMoney(bal, state.settings.currency);
+    if (settled) {
+      Toast.show({
+        message: I18n.t('toast_wife_settled', { balance: money }),
+        action: I18n.t('undo'),
+        onAction: function () { _markWifeSettled(id, false); },
+        variant: 'success'
+      });
+    } else {
+      Toast.show({
+        message: I18n.t('toast_wife_unsettled', { balance: money }),
+        variant: 'success'
+      });
+    }
   }
 
   function _removeWifePayment(id) {

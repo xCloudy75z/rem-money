@@ -94,6 +94,19 @@ var Store = (function () {
     return s;
   }
 
+  // Mark a wife purchase as reimbursed (or undo it). This is the wife-owes-you
+  // ledger and is INDEPENDENT of liabilitySettled (which tracks you-owe-the-bank);
+  // a byWife purchase can be settled with the wife but still owed to the bank.
+  function setWifeSettled(state, id, settled, atISO) {
+    if (!state.transactions[id]) throw new Error('setWifeSettled: id not found');
+    var s = clone(state);
+    s.transactions[id] = Object.assign({}, s.transactions[id], {
+      wifeSettled: !!settled,
+      wifeSettledAt: settled ? (atISO || null) : null
+    });
+    return s;
+  }
+
   function deleteTransaction(state, id) {
     var s = clone(state);
     delete s.transactions[id];
@@ -200,6 +213,7 @@ var Store = (function () {
     parse: parse, save: save, load: load,
     snapshot: snapshot, restoreSnapshot: restoreSnapshot, clearSnapshot: clearSnapshot,
     addTransaction: addTransaction, updateTransaction: updateTransaction, deleteTransaction: deleteTransaction,
+    setWifeSettled: setWifeSettled,
     addWifePayment: addWifePayment, deleteWifePayment: deleteWifePayment,
     addCategory: addCategory, updateCategory: updateCategory, archiveCategory: archiveCategory,
     deleteCategory: deleteCategory, reassignCategory: reassignCategory,

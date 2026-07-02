@@ -55,6 +55,7 @@ var Validate = (function () {
       if (!t.cycleId || !state.cycles[t.cycleId]) errors.push('txn ' + tid + ' cycleId invalid');
       if (typeof t.note === 'string' && t.note.length > 280) errors.push('txn ' + tid + ' note >280 chars');
       if (t.byWife !== undefined && typeof t.byWife !== 'boolean') errors.push('txn ' + tid + ' byWife must be boolean');
+      if (t.wifeSettled !== undefined && typeof t.wifeSettled !== 'boolean') errors.push('txn ' + tid + ' wifeSettled must be boolean');
     }
 
     for (var pid in (state.wifePayments || {})) {

@@ -120,6 +120,8 @@ var Migrate = (function () {
       if (t.liabilitySettled === undefined) t.liabilitySettled = false;
       if (t.settledAt === undefined) t.settledAt = null;
       if (t.byWife === undefined) t.byWife = false;
+      if (t.wifeSettled === undefined) t.wifeSettled = false;
+      if (t.wifeSettledAt === undefined) t.wifeSettledAt = null;
     }
 
     // Backfill per-category budget fields so categories created before the

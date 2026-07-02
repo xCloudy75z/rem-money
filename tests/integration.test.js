@@ -89,6 +89,7 @@ test('integration: restore round-trip — export → migrate → validate → st
     id: idGen('t'), cycleId: cycle.id, categoryId: otherId, date: '2026-05-30',
     amount: 35.80, isRefund: false, isExcludedFromPace: false,
     isCredit: false, liabilitySettled: false, settledAt: null, byWife: false,
+    wifeSettled: false, wifeSettledAt: null,
     note: 'Lunch', createdAt: '', updatedAt: ''
   });
 
@@ -97,6 +98,7 @@ test('integration: restore round-trip — export → migrate → validate → st
     id: idGen('t'), cycleId: cycle.id, categoryId: otherId, date: '2026-05-30',
     amount: 60, isRefund: false, byWife: true,
     isCredit: true, isExcludedFromPace: true, liabilitySettled: false, settledAt: null,
+    wifeSettled: false, wifeSettledAt: null,
     note: 'Groceries', createdAt: '', updatedAt: ''
   });
   // A reimbursement from her

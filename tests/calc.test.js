@@ -175,3 +175,12 @@ test('planSummary: zero-budget excluded from total, archived skipped', () => {
   assert.strictEqual(sum.totalMonthlyPlanned, 0);
   assert.ok(!sum.rows.some(r => r.categoryId === 'cat-z'));
 });
+
+test('cycleIdForDate: matches inside, at bounds, null outside', () => {
+  let s = seedStateWithCycle('2026-06-25', '2026-07-24', 10000);
+  assert.strictEqual(Calc.cycleIdForDate(s, '2026-07-12'), 'c1');
+  assert.strictEqual(Calc.cycleIdForDate(s, '2026-06-25'), 'c1');
+  assert.strictEqual(Calc.cycleIdForDate(s, '2026-07-24'), 'c1');
+  assert.strictEqual(Calc.cycleIdForDate(s, '2026-07-25'), null);
+  assert.strictEqual(Calc.cycleIdForDate(s, '2026-06-24'), null);
+});

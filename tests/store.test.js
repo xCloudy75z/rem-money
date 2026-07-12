@@ -181,4 +181,27 @@ test('updateTransaction toggling byWife on forces the flags', () => {
   assert.strictEqual(s.transactions['t1'].isExcludedFromPace, true);
 });
 
+test('addTransactions adds many immutably and enforces byWife', () => {
+  let s = Store.empty();
+  s = Store.addCycle(s, { id: 'c1', startDate: '2026-06-25', endDate: '2026-07-24', startBudget: 1000, archivedAt: null, createdAt: '' });
+  s = Store.addCategory(s, { id: 'k', name: 'K', icon: '•', color: '#999', order: 0, isArchived: false, createdAt: '' });
+  const before = s;
+  const out = Store.addTransactions(s, [
+    { id: 't1', cycleId: 'c1', categoryId: 'k', date: '2026-07-01', amount: 10, isRefund: false, isExcludedFromPace: false, note: '', createdAt: '', updatedAt: '' },
+    { id: 't2', cycleId: 'c1', categoryId: 'k', date: '2026-07-02', amount: 20, isRefund: false, byWife: true, note: '', createdAt: '', updatedAt: '' }
+  ]);
+  assert.strictEqual(Object.keys(out.transactions).length, 2);
+  assert.strictEqual(out.transactions.t2.isCredit, true);          // byWife enforcement
+  assert.strictEqual(out.transactions.t2.isExcludedFromPace, true);
+  assert.strictEqual(Object.keys(before.transactions).length, 0);  // original untouched
+});
+
+test('addTransactions throws on a falsy cycleId (never writes an orphan)', () => {
+  let s = Store.empty();
+  s = Store.addCategory(s, { id: 'k', name: 'K', icon: '•', color: '#999', order: 0, isArchived: false, createdAt: '' });
+  assert.throws(function () {
+    Store.addTransactions(s, [{ id: 'x', cycleId: null, categoryId: 'k', date: '2026-07-01', amount: 5, isRefund: false, note: '', createdAt: '', updatedAt: '' }]);
+  }, /cycleId/);
+});
+
 module.exports = { loadModule };

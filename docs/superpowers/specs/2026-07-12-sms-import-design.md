@@ -110,7 +110,8 @@ shown and confirmed.
 ### 3. `Store.addTransactions(state, txns)` — bulk mutator
 
 Immutable; adds an array in one cloned state, applying the same normalization as
-`addTransaction` (incl. `byWife` enforcement). Undo removes them by id.
+`addTransaction` (incl. `byWife` enforcement). **Throws on any txn with a falsy
+`id` or `cycleId`** (the null-cycle guard). Undo removes them by id.
 
 ### 4. `App._buildTxn(input)` — shared transaction scaffold
 
@@ -123,8 +124,15 @@ field defaults.
 
 Opened from **Settings → Backup → "Add spends from messages"**. The component is a
 **view only**: it never generates ids or timestamps. It emits an array of plain
-edited rows `{ amount, categoryId, dateISO, note, cycleId }`; `app.js` builds the
-transactions via `_buildTxn` and calls `Store.addTransactions`.
+edited rows `{ amount, categoryId, dateISO, note, cycleId, byWife }`; `app.js`
+builds the transactions via `_buildTxn` and calls `Store.addTransactions`.
+
+**Edits are persisted to an in-memory model, not read only at commit.** Each parsed
+row is a model item (`include`, `amount`, `dateISO`, `categoryId`, `note`,
+`cycleId`, `byWife`, `timeHHMM`, `group`, `idx`). Every `input`/`change` writes the
+row's values back into its model item (resolved by `idx`, not array position). The
+preview re-renders from the model, so a **partial commit keeps the owner's edits on
+the rows that remain** — nothing typed is lost.
 
 **Step 1 — paste:** a large textarea + **Scan** button, with a one-line hint about
 the forward→copy trick.
@@ -132,8 +140,11 @@ the forward→copy trick.
 **Step 2 — preview** (`SmsParse.parse` output, grouped; nothing hidden):
 - **Purchases** (approved) — ticked ON, but *blocked until valid* (see gate).
   Fields per row: include checkbox · amount (editable) · date (editable) ·
-  **category (empty — owner picks)** · note (= shop, editable) · **target-cycle
-  label** (shown when the date resolves to a non-active or no cycle).
+  **category (empty — owner picks)** · note (= shop, editable) · a **"Wife"
+  toggle** (off by default; ticking it marks the row `byWife` so it becomes the
+  wife's to repay). A normal purchase always files into the active cycle (the only
+  non-archived cycle whose range holds a recent date), so no cycle picker is shown
+  here; back-dated/out-of-range dates are routed to **Needs your input** instead.
 - **Needs your input** — debits (no date), rows whose date matches **no** cycle,
   and rows whose date matches an **archived / non-active** cycle. Ticked OFF;
   each needs a date and/or an explicit target-cycle pick before it can be added.
@@ -162,9 +173,16 @@ same-day different-time repeats are *not* falsely merged. A match → row shown 
    non-active/archived/no-match, the owner has explicitly confirmed/picked it).
 
 **Blocker readout (Step 3):** next to the button, an aggregate reason —
-`"Add 3 spends — 5 ticked rows still need a category · 1 needs a date"` — tappable
-to scroll to the first blocked row. The button count reflects only addable rows;
-a reduced/disabled button always states *why*.
+`"5 ticked rows still need a category, date, amount, or cycle"` — which is
+**tappable to scroll to the first blocked row**. Every ticked-but-invalid row also
+carries a visible `.blocked` highlight. The button count reflects only addable
+rows; a reduced/disabled button always states *why*.
+
+**Wife purchases:** ticking a row's "Wife" toggle sets `byWife:true` on the emitted
+row. `app.js` passes it through `_buildTxn`, and `Store._enforceWife` (existing)
+auto-sets `isCredit` + `isExcludedFromPace`, so the spend stays out of the daily
+pace and shows up under "Wife owes you" via `Calc.wifeSummary` — no import-specific
+wife logic. Default off; the owner ticks wife rows the same way they pick categories.
 
 **Commit:** builds txns via `App._buildTxn` (cycleId = the row's resolved target;
 `createdAt` = the SMS `dateISO`+`timeHHMM` as a local wall-clock ISO, or
@@ -189,8 +207,10 @@ For each row: `target = Calc.cycleIdForDate(state, dateISO)`.
 - `target === null` (date in a gap / outside all cycles) → **Needs your input**;
   owner picks a target cycle (defaults to active) before it can be added.
 - If `activeCycleId` is also null (fresh install / restored backup) → the commit
-  is blocked with a clear message; **no transaction is ever written with a null
-  cycleId** (asserted by test).
+  is blocked with a clear message. The invariant is enforced at the data layer:
+  **`Store.addTransactions` throws on any txn with a falsy `cycleId`**, so no
+  transaction can ever be written with a null cycle — asserted by a store test
+  (not just the UI gate).
 
 ## Error / edge handling
 

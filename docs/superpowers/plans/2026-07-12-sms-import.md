@@ -283,6 +283,14 @@ test('addTransactions adds many immutably and enforces byWife', () => {
   assert.strictEqual(out.transactions.t2.isExcludedFromPace, true);
   assert.strictEqual(Object.keys(before.transactions).length, 0);  // original untouched
 });
+
+test('addTransactions throws on a falsy cycleId (never writes an orphan)', () => {
+  let s = Store.empty();
+  s = Store.addCategory(s, { id: 'k', name: 'K', icon: '•', color: '#999', order: 0, isArchived: false, createdAt: '' });
+  assert.throws(function () {
+    Store.addTransactions(s, [{ id: 'x', cycleId: null, categoryId: 'k', date: '2026-07-01', amount: 5, isRefund: false, note: '', createdAt: '', updatedAt: '' }]);
+  }, /cycleId/);
+});
 ```
 
 - [ ] **Step 2: Run to verify it fails**
@@ -300,6 +308,7 @@ In `src/store.js`, right after the `addTransaction` function, add:
     for (var i = 0; i < txns.length; i++) {
       var t = txns[i];
       if (!t || !t.id) throw new Error('addTransactions: txn.id required');
+      if (!t.cycleId) throw new Error('addTransactions: txn.cycleId required');
       s.transactions[t.id] = _enforceWife(t);
     }
     return s;
@@ -438,8 +447,8 @@ In `src/i18n.js`, in the `en:` object, right after the `backup_tip:` line, inser
       sms_group_unrecognized: "Not understood — add these by hand if they're spends",
       sms_choose_category: 'Choose…',
       sms_choose_cycle: 'Choose cycle…',
-      sms_files_into: 'files into: {cycle}',
-      sms_summary: '{p} purchases · {n} need details · {r} possible repeats · {x} not understood',
+      sms_wife: 'Wife',
+      sms_summary: '{p} purchases · {n} need details · {r} possible repeats · {d} not a spend · {x} not understood',
       sms_add_n: 'Add {n} spends',
       sms_blocked: '{n} ticked rows still need a category, date, amount, or cycle',
       sms_added: 'Added {n} spends.',
@@ -467,8 +476,8 @@ In the `ar:` object, right after its `backup_tip:` line, insert:
       sms_group_unrecognized: 'غير مفهومة — أضفها يدوياً إن كانت مصاريف',
       sms_choose_category: 'اختر…',
       sms_choose_cycle: 'اختر الدورة…',
-      sms_files_into: 'تُسجّل في: {cycle}',
-      sms_summary: '{p} مشتريات · {n} تحتاج تفاصيل · {r} تكرارات · {x} غير مفهومة',
+      sms_wife: 'الزوجة',
+      sms_summary: '{p} مشتريات · {n} تحتاج تفاصيل · {r} تكرارات · {d} ليست مصروفاً · {x} غير مفهومة',
       sms_add_n: 'إضافة {n} مصاريف',
       sms_blocked: '{n} صفوف مؤشرة تحتاج فئة أو تاريخ أو مبلغ أو دورة',
       sms_added: 'تمت إضافة {n} مصاريف.',
@@ -505,7 +514,10 @@ var ImportSmsSheet = (function () {
   'use strict';
 
   // opts: { state, onCommit(rows) }
-  //   rows: [{ amount, categoryId, dateISO, note, cycleId, createdAtISO }]
+  //   rows: [{ amount, categoryId, dateISO, note, cycleId, byWife, createdAtISO }]
+  // Model-driven: every edit is written back into m.items (resolved by idx), and
+  // the preview always re-renders from the model — so a partial commit keeps the
+  // owner's edits on the rows that remain.
   function open(opts) {
     var state = opts.state;
     var cats = Object.keys(state.categories).map(function (id) { return state.categories[id]; })
@@ -516,6 +528,14 @@ var ImportSmsSheet = (function () {
     var activeCycleId = state.settings.activeCycleId;
 
     var m = { phase: 'paste', items: [], unrecognized: [], dirty: false };
+
+    // existing-txn dup keys (amount|NOTE|date|time)
+    var existing = {};
+    for (var tid in state.transactions) {
+      var t = state.transactions[tid];
+      var tm = (t.createdAt && t.createdAt.length >= 16) ? t.createdAt.slice(11, 16) : '';
+      existing[_key(t.amount, t.note, t.date, tm)] = true;
+    }
 
     var wrap = Sheet.open({
       contentHTML: _pasteHTML(),
@@ -530,36 +550,27 @@ var ImportSmsSheet = (function () {
         }).then(function (ok) { if (ok) Sheet.close(); });
       }
     });
-
     function body() { return wrap.querySelector('.sheet-body'); }
 
-    // ---- existing-txn dup keys (amount|NOTE|date|time) ----
-    var existing = {};
-    for (var tid in state.transactions) {
-      var t = state.transactions[tid];
-      var tm = (t.createdAt && t.createdAt.length >= 16) ? t.createdAt.slice(11, 16) : '';
-      existing[_key(t.amount, t.note, t.date, tm)] = true;
-    }
-
+    // ---- scan: text -> model ----
     function _scan(text) {
       var parsed = SmsParse.parse(text);
       m.unrecognized = parsed.unrecognized;
       m.items = parsed.rows.map(function (r, i) {
+        var resolved = r.dateISO ? Calc.cycleIdForDate(state, r.dateISO) : null;
+        var cObj = resolved ? state.cycles[resolved] : null;
         var group;
         if (r.kind === 'purchase' && r.status !== 'approved') group = 'notspend';
         else if (r.repeatOfIndex != null) group = 'repeat';
         else if (r.kind === 'purchase' && existing[_key(r.amount, r.note, r.dateISO, r.timeHHMM)]) group = 'repeat';
         else if (!r.dateISO) group = 'needs';                       // debits
-        else {
-          var cyc = Calc.cycleIdForDate(state, r.dateISO);
-          var cObj = cyc ? state.cycles[cyc] : null;
-          group = (!cyc || (cObj && cObj.archivedAt)) ? 'needs' : 'purchase';
-        }
-        var resolved = r.dateISO ? Calc.cycleIdForDate(state, r.dateISO) : null;
+        else if (!resolved || (cObj && cObj.archivedAt)) group = 'needs';   // back-dated / closed
+        else group = 'purchase';
         return {
           idx: i, raw: r.raw, kind: r.kind, group: group,
           amount: r.amount, note: r.note, dateISO: r.dateISO || '', timeHHMM: r.timeHHMM,
-          categoryId: '', cycleId: (group === 'purchase') ? resolved : (resolved || activeCycleId || '')
+          categoryId: '', byWife: false, include: (group === 'purchase'),
+          cycleId: (group === 'purchase') ? resolved : (resolved || activeCycleId || '')
         };
       });
       m.phase = 'preview';
@@ -567,17 +578,17 @@ var ImportSmsSheet = (function () {
       _refreshFooter();
     }
 
-    // ---- render: paste phase ----
+    // ---- paste phase (footer overrides the .sheet-footer 2-col grid) ----
     function _pasteHTML() {
       return '<div class="sheet-section">'
         + '<label>' + I18n.t('sms_paste_label') + '</label>'
         + '<textarea class="input" id="sms-text" rows="7" style="resize:vertical"></textarea>'
         + '<p style="color:var(--muted);font-size:12px;margin-top:8px;line-height:1.5">' + I18n.t('sms_paste_hint') + '</p>'
         + '</div>'
-        + '<div class="sheet-footer"><button class="btn btn-primary btn-block" id="sms-scan">' + I18n.t('sms_scan') + '</button></div>';
+        + '<div class="sheet-footer" style="grid-template-columns:1fr"><button class="btn btn-primary btn-block" id="sms-scan">' + I18n.t('sms_scan') + '</button></div>';
     }
 
-    // ---- render: preview phase ----
+    // ---- preview render ----
     function _catOptions(sel) {
       return '<option value="">' + I18n.t('sms_choose_category') + '</option>'
         + cats.map(function (c) {
@@ -592,123 +603,125 @@ var ImportSmsSheet = (function () {
             return '<option value="' + c.id + '"' + (c.id === sel ? ' selected' : '') + '>' + label + '</option>';
           }).join('');
     }
-    function _editableRow(it) {
-      var needsCyclePicker = (it.group === 'needs') || (it.cycleId && it.cycleId !== activeCycleId);
+    function _row(it) {
+      var showCyc = (it.group === 'needs');   // only back-dated/closed/no-cycle rows pick a cycle
       return '<div class="sms-row" data-idx="' + it.idx + '">'
-        + '<input type="checkbox" class="sms-inc"' + (it.group === 'purchase' ? ' checked' : '') + '>'
-        + '<input class="input sms-amt" type="number" min="0" inputmode="decimal" value="' + it.amount + '" aria-label="amount">'
-        + '<input class="input sms-date" type="date" value="' + it.dateISO + '" aria-label="date">'
-        + '<select class="input sms-cat" aria-label="category">' + _catOptions(it.categoryId) + '</select>'
+        + '<div class="sms-row-main">'
+        +   '<input type="checkbox" class="sms-inc"' + (it.include ? ' checked' : '') + '>'
+        +   '<input class="input sms-amt" type="number" min="0" inputmode="decimal" value="' + it.amount + '" aria-label="amount">'
+        +   '<input class="input sms-date" type="date" value="' + it.dateISO + '" aria-label="date">'
+        +   '<select class="input sms-cat" aria-label="category">' + _catOptions(it.categoryId) + '</select>'
+        + '</div>'
         + '<input class="input sms-note" maxlength="280" value="' + Format.escapeHTML(it.note) + '" aria-label="note">'
-        + (needsCyclePicker ? '<select class="input sms-cyc" aria-label="cycle">' + _cycleOptions(it.cycleId) + '</select>' : '<input type="hidden" class="sms-cyc" value="' + it.cycleId + '">')
+        + '<div class="sms-row-opts">'
+        +   '<label class="sms-wife"><input type="checkbox" class="sms-wife-cb"' + (it.byWife ? ' checked' : '') + '> ' + I18n.t('sms_wife') + '</label>'
+        +   (showCyc ? '<select class="input sms-cyc" aria-label="cycle">' + _cycleOptions(it.cycleId) + '</select>' : '<input type="hidden" class="sms-cyc" value="' + it.cycleId + '">')
+        + '</div>'
         + '</div>';
     }
     function _group(key, titleKey) {
       var list = m.items.filter(function (it) { return it.group === key; });
       if (!list.length) return '';
-      var readOnly = (key === 'notspend');
-      var rowsHTML = list.map(function (it) {
-        return readOnly
-          ? '<div class="sms-row ro">' + Format.escapeHTML(it.raw) + '</div>'
-          : _editableRow(it);
-      }).join('');
-      return '<div class="section-h">' + I18n.t(titleKey) + '</div>' + rowsHTML;
+      var rows = (key === 'notspend')
+        ? list.map(function (it) { return '<div class="sms-row ro">' + Format.escapeHTML(it.raw) + '</div>'; }).join('')
+        : list.map(_row).join('');
+      return '<div class="section-h">' + I18n.t(titleKey) + '</div>' + rows;
+    }
+    function _counts() {
+      var c = { purchase: 0, needs: 0, repeat: 0, notspend: 0 };
+      m.items.forEach(function (it) { if (c[it.group] != null) c[it.group]++; });
+      return c;
     }
     function _previewHTML() {
+      var c = _counts();
       var unrec = m.unrecognized.length
         ? '<div class="section-h">' + I18n.t('sms_group_unrecognized') + '</div>'
           + m.unrecognized.map(function (l) { return '<div class="sms-row ro">' + Format.escapeHTML(l) + '</div>'; }).join('')
         : '';
-      var counts = _counts();
       return '<div class="sheet-section">'
         + '<p style="color:var(--muted);font-size:12px;margin-bottom:10px">'
-        + I18n.t('sms_summary', { p: counts.purchases, n: counts.needs, r: counts.repeats, x: m.unrecognized.length }) + '</p>'
+        + I18n.t('sms_summary', { p: c.purchase, n: c.needs, r: c.repeat, d: c.notspend, x: m.unrecognized.length }) + '</p>'
         + _group('purchase', 'sms_group_purchases')
         + _group('needs', 'sms_group_needs')
         + _group('repeat', 'sms_group_repeats')
         + _group('notspend', 'sms_group_notspend')
         + unrec
         + '</div>'
-        + '<div class="sheet-footer" style="flex-direction:column;gap:6px">'
-        + '<p id="sms-blocker" style="color:var(--muted);font-size:12px;margin:0"></p>'
+        + '<div class="sheet-footer" style="grid-template-columns:1fr;gap:6px">'
+        + '<p id="sms-blocker" style="color:var(--muted);font-size:12px;margin:0;cursor:pointer"></p>'
         + '<button class="btn btn-primary btn-block" id="sms-add"></button>'
         + '</div>';
     }
-    function _counts() {
-      var c = { purchases: 0, needs: 0, repeats: 0 };
-      m.items.forEach(function (it) {
-        if (it.group === 'purchase') c.purchases++;
-        else if (it.group === 'needs') c.needs++;
-        else if (it.group === 'repeat') c.repeats++;
-      });
-      return c;
-    }
 
-    // ---- read a DOM row -> plain values ----
-    function _readRow(el) {
+    // ---- model <-> DOM ----
+    function _itemByIdx(idx) {
+      for (var j = 0; j < m.items.length; j++) if (m.items[j].idx === idx) return m.items[j];
+      return null;
+    }
+    function _writeBack(el) {
+      var it = _itemByIdx(+el.getAttribute('data-idx'));
+      if (!it) return;
+      it.include = el.querySelector('.sms-inc').checked;
       var amt = parseFloat(el.querySelector('.sms-amt').value);
+      it.amount = isFinite(amt) ? Math.round(amt * 100) / 100 : NaN;
+      it.dateISO = el.querySelector('.sms-date').value;
+      it.categoryId = el.querySelector('.sms-cat').value;
+      it.note = el.querySelector('.sms-note').value;
+      it.byWife = el.querySelector('.sms-wife-cb').checked;
       var cyc = el.querySelector('.sms-cyc');
-      return {
-        el: el,
-        include: el.querySelector('.sms-inc').checked,
-        amount: (isFinite(amt) ? Math.round(amt * 100) / 100 : NaN),
-        dateISO: el.querySelector('.sms-date').value,
-        categoryId: el.querySelector('.sms-cat').value,
-        note: el.querySelector('.sms-note').value,
-        cycleId: cyc ? cyc.value : ''
-      };
+      if (cyc) it.cycleId = cyc.value;
     }
-    function _isValid(r) {
-      return r.include && isFinite(r.amount) && r.amount > 0 && r.categoryId && r.dateISO && r.cycleId;
+    function _isValid(it) {
+      return it.include && isFinite(it.amount) && it.amount > 0 && it.categoryId && it.dateISO && it.cycleId;
     }
 
-    // ---- footer state (gate + blocker) ----
+    // ---- footer: gate + blocker + per-row highlight ----
     function _refreshFooter() {
       var addBtn = wrap.querySelector('#sms-add');
       var blocker = wrap.querySelector('#sms-blocker');
       if (!addBtn) return;
       var addable = 0, blocked = 0;
       wrap.querySelectorAll('.sms-row[data-idx]').forEach(function (el) {
-        var r = _readRow(el);
-        if (_isValid(r)) addable++;
-        else if (r.include) blocked++;
+        var it = _itemByIdx(+el.getAttribute('data-idx'));
+        if (!it) return;
+        var ok = _isValid(it);
+        el.classList.toggle('blocked', it.include && !ok);
+        if (ok) addable++;
+        else if (it.include) blocked++;
       });
       addBtn.textContent = I18n.t('sms_add_n', { n: addable });
       addBtn.disabled = addable === 0;
       blocker.textContent = blocked ? I18n.t('sms_blocked', { n: blocked }) : '';
     }
+    function _scrollToFirstBlocked() {
+      var first = wrap.querySelector('.sms-row.blocked');
+      if (first) first.scrollIntoView({ block: 'center' });
+    }
 
-    // ---- commit ----
+    // ---- commit (from the model, not the DOM) ----
     function _commit() {
-      var out = [];
-      var toRemove = [];
-      wrap.querySelectorAll('.sms-row[data-idx]').forEach(function (el) {
-        var r = _readRow(el);
-        if (!_isValid(r)) return;
-        var time = '12:00';
-        var it = m.items[+el.getAttribute('data-idx')];
-        if (it && it.timeHHMM) time = it.timeHHMM;
+      var out = [], doneIdx = [];
+      m.items.forEach(function (it) {
+        if (!_isValid(it)) return;
+        var time = it.timeHHMM || '12:00';
         out.push({
-          amount: r.amount, categoryId: r.categoryId, dateISO: r.dateISO,
-          note: r.note, cycleId: r.cycleId,
-          createdAtISO: r.dateISO + 'T' + time + ':00.000Z'
+          amount: it.amount, categoryId: it.categoryId, dateISO: it.dateISO,
+          note: it.note, cycleId: it.cycleId, byWife: it.byWife,
+          createdAtISO: it.dateISO + 'T' + time + ':00.000Z'
         });
-        toRemove.push(el);
+        doneIdx.push(it.idx);
       });
       if (!out.length) return;
       opts.onCommit(out);
-      // remove committed rows; drop them from the model too
-      var idxs = toRemove.map(function (el) { return +el.getAttribute('data-idx'); });
-      m.items = m.items.filter(function (it) { return idxs.indexOf(it.idx) === -1; });
-      var stillEditable = m.items.some(function (it) { return it.group !== 'notspend'; });
-      if (!stillEditable) { Sheet.close(); return; }
+      m.items = m.items.filter(function (it) { return doneIdx.indexOf(it.idx) === -1; });
+      var left = m.items.filter(function (it) { return it.group !== 'notspend'; }).length;
+      if (!left) { Sheet.close(); return; }
       body().innerHTML = _previewHTML();
       _refreshFooter();
-      var left = m.items.filter(function (it) { return it.group !== 'notspend'; }).length;
       Toast.show({ message: I18n.t('sms_remaining', { added: out.length, left: left }), variant: 'success' });
     }
 
-    // ---- wiring ----
+    // ---- events ----
     wrap.addEventListener('click', function (e) {
       var t = e.target;
       if (t.id === 'sms-scan') {
@@ -718,13 +731,17 @@ var ImportSmsSheet = (function () {
         return;
       }
       if (t.id === 'sms-add') { _commit(); return; }
+      if (t.id === 'sms-blocker') { _scrollToFirstBlocked(); return; }
     });
-    wrap.addEventListener('input', function (e) {
-      if (e.target.closest('.sms-row[data-idx]')) { m.dirty = true; _refreshFooter(); }
-    });
-    wrap.addEventListener('change', function (e) {
-      if (e.target.closest('.sms-row[data-idx]')) { m.dirty = true; _refreshFooter(); }
-    });
+    function _onEdit(e) {
+      var el = e.target.closest && e.target.closest('.sms-row[data-idx]');
+      if (!el) return;
+      m.dirty = true;
+      _writeBack(el);
+      _refreshFooter();
+    }
+    wrap.addEventListener('input', _onEdit);
+    wrap.addEventListener('change', _onEdit);
   }
 
   function _key(amount, note, dateISO, timeHHMM) {
@@ -770,11 +787,12 @@ In `src/app.js`, immediately before `function _openSettings() {`, add:
         date: r.dateISO,
         amount: r.amount,
         isRefund: false,
+        byWife: !!r.byWife,
         note: (r.note || '').slice(0, 280),
         createdAt: r.createdAtISO || nowISO(),
         updatedAt: r.createdAtISO || nowISO()
       });
-    }).filter(function (t) { return t.cycleId; });   // never write a null-cycle txn
+    }).filter(function (t) { return t.cycleId; });   // belt-and-suspenders; Store also throws on null cycleId
     if (!built.length) return;
     state = Store.addTransactions(state, built);
     persist(); render();
@@ -825,10 +843,14 @@ Append to `src/styles/main.css`:
 
 ```css
 /* ===== SMS import preview ===== */
-.sms-row { display: grid; grid-template-columns: auto 84px 130px 1fr; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(128,128,128,.12); }
-.sms-row .sms-note { grid-column: 1 / -1; }
-.sms-row .sms-cyc { grid-column: 1 / -1; }
-.sms-row.ro { display: block; font-size: 12px; color: var(--muted); word-break: break-word; }
+.sms-row { padding: 8px 0; border-bottom: 1px solid rgba(128,128,128,.12); }
+.sms-row-main { display: grid; grid-template-columns: auto 76px 128px 1fr; gap: 6px; align-items: center; }
+.sms-row .sms-note { width: 100%; margin-top: 6px; }
+.sms-row-opts { display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+.sms-row-opts .sms-cyc { flex: 1; min-width: 150px; }
+.sms-wife { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.sms-row.ro { display: block; font-size: 12px; color: var(--muted); word-break: break-word; padding: 6px 0; }
+.sms-row.blocked { outline: 1px solid #e74c3c; outline-offset: 2px; border-radius: 6px; }
 .sms-row .input { min-width: 0; }
 ```
 
@@ -865,7 +887,7 @@ Trx. of AED99.00 on your card ending *124 at SOMEPLACE, UAE is Declined. Trx Dat
 weird unparseable line
 ```
 
-Verify: 2 clean purchases in **Purchases**; the debit in **Needs your input**; the 2nd QASR in **Possible repeats** (off); the declined line in **Not a spend** (read-only); "weird unparseable line" in **Unrecognized** (read-only). Pick categories; the **Add N** count only rises as categories are chosen; the blocker line explains what's missing. Add → Undo toast; History shows the new spends dated 11–12 Jul. Re-open and dismiss with edits → "Discard your reviewed rows?" appears.
+Verify: 2 clean purchases in **Purchases**; the debit in **Needs your input**; the 2nd QASR in **Possible repeats** (off); the declined line in **Not a spend** (read-only); "weird unparseable line" in **Unrecognized** (read-only). Pick categories; the **Add N** count only rises as categories are chosen; ticked-but-incomplete rows show the red `.blocked` outline; tapping the blocker line scrolls to the first one. **Tick the "Wife" toggle on one purchase** → after adding, that spend appears under **Credit → "Wife owes you"** and is excluded from the daily pace. Add only some rows → the sheet stays open with the rest **and your edits on them are preserved**; the "N added — M still need details" toast shows. Add → Undo toast; History shows the new spends dated 11–12 Jul. Re-open and dismiss with edits → "Discard your reviewed rows?" appears.
 
 - [ ] **Step 3: Add checklist rows** to `tests/MANUAL-CHECKLIST.md` under a new "Import from messages" section capturing Step 2.
 
@@ -884,5 +906,7 @@ git commit -m "docs(test): manual checklist for SMS import"
 
 - **Spec coverage:** parser w/ status+repeatOfIndex+unrecognized (T1); cycleIdForDate (T2); addTransactions (T3); shared _buildTxn (T4); dirty-check via Sheet guard (T5); i18n (T6); 5-group preview + gate + blocker + stay-open + createdAt-from-SMS (T7); null-cycle guard + Undo + Settings button + registration + CSS (T8); manual verify (T9). Invariant honored: notspend/repeat/needs/unrecognized are all shown and default OFF; amount validated `>0`; cycleId filtered non-null before write.
 - **Type consistency:** parser row shape (`raw,kind,status,amount,note,dateISO,timeHHMM,repeatOfIndex`) is consumed unchanged by the component's `_scan`; component emits `{amount,categoryId,dateISO,note,cycleId,createdAtISO}` consumed verbatim by `_onImportSms`; `_buildTxn` input keys match `Store.addTransaction`'s expectations.
-- **Open items for the plan's stress-test:** (a) `loadModule` export convention for `smsParse.js` (Step-1 note); (b) whether the `.sms-row` grid is usable at 360px — may need a stacked layout; (c) `createdAtISO` uses `12:00` for debits — acceptable since only display ordering depends on it.
+- **Post-stress-test hardening (folded in):** model-driven edits (partial commit preserves edits, H1); commit reads from the model so the idx/timestamp bug is gone; `Store.addTransactions` **throws on falsy cycleId** with a locking test (H-tests); footer overrides the `.sheet-footer` 2-col grid via inline `grid-template-columns:1fr` (per `cycleRolloverSheet.js` convention); summary includes the "not a spend" count; blocker line is tappable-to-scroll and blocked rows get a `.blocked` outline; dead `sms_files_into` removed; cycle picker shown only for the **Needs your input** group; `.sms-row` uses a stacked layout (main grid + full-width note + opts row) that fits 360px.
+- **Wife purchases (new):** per-row **Wife** toggle → `byWife:true` on the emitted row → `_buildTxn` → `Store._enforceWife` auto-sets `isCredit`+`isExcludedFromPace`; surfaces under "Wife owes you" via existing `Calc.wifeSummary`. No import-specific wife logic; the store `addTransactions` test already covers `byWife` enforcement.
+- **Remaining minor note:** `createdAtISO` uses `12:00` for debit rows (no SMS time) — acceptable since only display ordering depends on it.
 ```

@@ -543,6 +543,42 @@ var App = (function () {
     });
   }
 
+  function _onImportSms(rows) {
+    if (!rows || !rows.length) return;
+    var built = rows.map(function (r) {
+      return _buildTxn({
+        cycleId: r.cycleId,
+        categoryId: r.categoryId,
+        date: r.dateISO,
+        amount: r.amount,
+        isRefund: false,
+        byWife: !!r.byWife,
+        note: (r.note || '').slice(0, 280),
+        createdAt: r.createdAtISO || nowISO(),
+        updatedAt: r.createdAtISO || nowISO()
+      });
+    }).filter(function (t) { return t.cycleId; });   // belt-and-suspenders; Store also throws on null cycleId
+    if (!built.length) return;
+    state = Store.addTransactions(state, built);
+    persist(); render();
+    var ids = built.map(function (t) { return t.id; });
+    Toast.show({
+      message: I18n.t('sms_added', { n: built.length }),
+      action: I18n.t('undo'),
+      duration: 8000,
+      onAction: function () {
+        var s = state;
+        ids.forEach(function (id) { s = Store.deleteTransaction(s, id); });
+        state = s; persist(); render();
+      },
+      variant: 'success'
+    });
+  }
+
+  function _openImportSms() {
+    ImportSmsSheet.open({ state: state, onCommit: _onImportSms });
+  }
+
   function _openSettings() {
     SettingsSheet.open(state, {
       onCycleBudget: function (n) {
@@ -565,6 +601,7 @@ var App = (function () {
         persist(); render(); return state;
       },
       onManageCategories: function () { ui.tab = 'plan'; render(); },
+      onImportSms: function () { _openImportSms(); },
       onRefreshApp: function () { _refreshApp(); },
       onTheme: function (theme) {
         state = Store.updateSettings(state, { theme: theme });

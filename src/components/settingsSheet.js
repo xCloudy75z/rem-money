@@ -70,6 +70,7 @@ var SettingsSheet = (function () {
       +   '<button class="btn btn-block" data-action="export-json" style="margin-bottom:6px">⬇ ' + I18n.t('export_json') + '</button>'
       +   '<button class="btn btn-block" data-action="import-json" style="margin-bottom:6px">⬆ ' + I18n.t('import_json') + '</button>'
       +   '<button class="btn btn-block" data-action="export-csv" style="margin-bottom:6px">⬇ ' + I18n.t('export_csv') + '</button>'
+      +   '<button class="btn btn-block" data-action="import-sms" style="margin-bottom:6px">' + I18n.t('sms_import_btn') + '</button>'
       +   '<input type="file" id="ss-import-input" accept="application/json,.json" style="display:none">'
       +   '<p style="color:var(--muted);font-size:12px;margin-top:10px;line-height:1.5">' + I18n.t('backup_tip') + '</p>'
       + '</div>'
@@ -154,6 +155,7 @@ var SettingsSheet = (function () {
       }
       if (action === 'export-json') { callbacks.onExportJSON(); return; }
       if (action === 'export-csv') { callbacks.onExportCSV(); return; }
+      if (action === 'import-sms') { Sheet.close(); callbacks.onImportSms(); return; }
       if (action === 'import-json') {
         wrap.querySelector('#ss-import-input').click();
         return;

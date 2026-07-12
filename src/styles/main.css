@@ -288,3 +288,14 @@ html[dir="rtl"] body { font-family: -apple-system, BlinkMacSystemFont, "SF Arabi
 .plan-row-fixed { background: rgba(128,128,128,.05); border-radius: 8px; padding-inline: 10px; }
 .plan-unit-seg { transform: scale(.9); transform-origin: center; }
 .plan-row .del-cat { background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 4px; }
+
+/* ===== SMS import preview ===== */
+.sms-row { padding: 8px 0; border-bottom: 1px solid rgba(128,128,128,.12); }
+.sms-row-main { display: grid; grid-template-columns: auto 76px 128px 1fr; gap: 6px; align-items: center; }
+.sms-row .sms-note { width: 100%; margin-top: 6px; }
+.sms-row-opts { display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+.sms-row-opts .sms-cyc { flex: 1; min-width: 150px; }
+.sms-wife { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.sms-row.ro { display: block; font-size: 12px; color: var(--muted); word-break: break-word; padding: 6px 0; }
+.sms-row.blocked { outline: 1px solid #e74c3c; outline-offset: 2px; border-radius: 6px; }
+.sms-row .input { min-width: 0; }

@@ -43,6 +43,15 @@ var LiabilitiesView = (function () {
       + '</li>';
   }
 
+  // Wrap a section's rows in one enclosing card so the list reads as a single
+  // panel with hairline row dividers, instead of a stack of separate pills.
+  function _listCard(header, rows) {
+    return '<div class="credit-card">'
+      + (header || '')
+      + '<ul class="txn-list txn-scroll">' + rows + '</ul>'
+      + '</div>';
+  }
+
   function _wifePaymentRow(p, currency) {
     var when = Format.fmtDateShort(p.date);
     var sub = when + (p.note ? ' · ' + Format.escapeHTML(p.note) : '');
@@ -96,18 +105,18 @@ var LiabilitiesView = (function () {
       + '</div>';
 
     var wifePurchasesHTML = wife.purchases.length
-      ? '<div class="section-h">' + I18n.t('wife_purchases_section') + '</div>'
-        + '<ul class="txn-list txn-scroll">' + wife.purchases.map(function (t) { return _wifePurchaseRow(t, state, false); }).join('') + '</ul>'
+      ? _listCard('<div class="section-h">' + I18n.t('wife_purchases_section') + '</div>',
+          wife.purchases.map(function (t) { return _wifePurchaseRow(t, state, false); }).join(''))
       : '';
 
     var wifeReimbursedHTML = wife.settledPurchases.length
-      ? '<div class="section-h">' + I18n.t('wife_reimbursed_section') + '</div>'
-        + '<ul class="txn-list txn-scroll">' + wife.settledPurchases.map(function (t) { return _wifePurchaseRow(t, state, true); }).join('') + '</ul>'
+      ? _listCard('<div class="section-h">' + I18n.t('wife_reimbursed_section') + '</div>',
+          wife.settledPurchases.map(function (t) { return _wifePurchaseRow(t, state, true); }).join(''))
       : '';
 
     var wifePaymentsHTML = wife.payments.length
-      ? '<div class="section-h">' + I18n.t('wife_payments_section') + '</div>'
-        + '<ul class="txn-list txn-scroll">' + wife.payments.map(function (p) { return _wifePaymentRow(p, currency); }).join('') + '</ul>'
+      ? _listCard('<div class="section-h">' + I18n.t('wife_payments_section') + '</div>',
+          wife.payments.map(function (p) { return _wifePaymentRow(p, currency); }).join(''))
       : '';
 
     var wifeSection = (wife.purchases.length || wife.settledPurchases.length || wife.payments.length || wife.balance !== 0)
@@ -115,14 +124,14 @@ var LiabilitiesView = (function () {
       : '';
 
     var unpaidHTML = sum.items.length
-      ? '<ul class="txn-list txn-scroll">' + sum.items.map(function (t) { return _row(t, state, { paid: false }); }).join('') + '</ul>'
+      ? _listCard('', sum.items.map(function (t) { return _row(t, state, { paid: false }); }).join(''))
       : '<div class="empty-state"><div class="e-emoji">✅</div><div class="e-title">' + I18n.t('credit_empty') + '</div></div>';
 
     var paidHTML = '';
     if (sum.paidItems.length) {
-      paidHTML = ''
-        + '<div class="section-h">' + I18n.t('credit_paid_section') + '</div>'
-        + '<ul class="txn-list txn-scroll">' + sum.paidItems.map(function (t) { return _row(t, state, { paid: true }); }).join('') + '</ul>';
+      paidHTML = _listCard(
+        '<div class="section-h">' + I18n.t('credit_paid_section') + '</div>',
+        sum.paidItems.map(function (t) { return _row(t, state, { paid: true }); }).join(''));
     }
 
     return header

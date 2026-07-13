@@ -172,6 +172,15 @@ input { font: inherit; }
 .txn.credit-settled { opacity: 0.6; }
 .txn .credit-action { margin-inline-start: 4px; }
 
+/* Credit page: enclose each list in one card with hairline row dividers,
+   instead of a stack of separate pills. Rows inside go flat/transparent. */
+.credit-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px 14px; margin: 12px 0; }
+.credit-card .section-h { margin: 10px 2px 2px; }
+.credit-card .txn-list { gap: 0; }
+.credit-card .txn { background: transparent; border: none; border-radius: 0; border-bottom: 1px solid var(--border); padding: 12px 2px; min-height: 46px; }
+.credit-card .txn:last-child { border-bottom: none; }
+.credit-card .txn:hover { background: transparent; }
+
 /* ============ TOAST ============ */
 #toast-root { position: fixed; left: 0; right: 0; bottom: calc(150px + env(safe-area-inset-bottom)); z-index: 200; pointer-events: none; }
 .toast { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; box-shadow: var(--shadow-2); pointer-events: auto; max-width: var(--container); margin-inline: auto; }

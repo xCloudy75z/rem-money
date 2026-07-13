@@ -97,17 +97,17 @@ var LiabilitiesView = (function () {
 
     var wifePurchasesHTML = wife.purchases.length
       ? '<div class="section-h">' + I18n.t('wife_purchases_section') + '</div>'
-        + '<ul class="txn-list">' + wife.purchases.map(function (t) { return _wifePurchaseRow(t, state, false); }).join('') + '</ul>'
+        + '<ul class="txn-list txn-scroll">' + wife.purchases.map(function (t) { return _wifePurchaseRow(t, state, false); }).join('') + '</ul>'
       : '';
 
     var wifeReimbursedHTML = wife.settledPurchases.length
       ? '<div class="section-h">' + I18n.t('wife_reimbursed_section') + '</div>'
-        + '<ul class="txn-list">' + wife.settledPurchases.map(function (t) { return _wifePurchaseRow(t, state, true); }).join('') + '</ul>'
+        + '<ul class="txn-list txn-scroll">' + wife.settledPurchases.map(function (t) { return _wifePurchaseRow(t, state, true); }).join('') + '</ul>'
       : '';
 
     var wifePaymentsHTML = wife.payments.length
       ? '<div class="section-h">' + I18n.t('wife_payments_section') + '</div>'
-        + '<ul class="txn-list">' + wife.payments.map(function (p) { return _wifePaymentRow(p, currency); }).join('') + '</ul>'
+        + '<ul class="txn-list txn-scroll">' + wife.payments.map(function (p) { return _wifePaymentRow(p, currency); }).join('') + '</ul>'
       : '';
 
     var wifeSection = (wife.purchases.length || wife.settledPurchases.length || wife.payments.length || wife.balance !== 0)
@@ -115,14 +115,14 @@ var LiabilitiesView = (function () {
       : '';
 
     var unpaidHTML = sum.items.length
-      ? '<ul class="txn-list">' + sum.items.map(function (t) { return _row(t, state, { paid: false }); }).join('') + '</ul>'
+      ? '<ul class="txn-list txn-scroll">' + sum.items.map(function (t) { return _row(t, state, { paid: false }); }).join('') + '</ul>'
       : '<div class="empty-state"><div class="e-emoji">✅</div><div class="e-title">' + I18n.t('credit_empty') + '</div></div>';
 
     var paidHTML = '';
     if (sum.paidItems.length) {
       paidHTML = ''
         + '<div class="section-h">' + I18n.t('credit_paid_section') + '</div>'
-        + '<ul class="txn-list">' + sum.paidItems.map(function (t) { return _row(t, state, { paid: true }); }).join('') + '</ul>';
+        + '<ul class="txn-list txn-scroll">' + sum.paidItems.map(function (t) { return _row(t, state, { paid: true }); }).join('') + '</ul>';
     }
 
     return header

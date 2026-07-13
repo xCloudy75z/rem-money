@@ -34,7 +34,7 @@ var App = (function () {
 
   // ===== State + UI =====
   var state = null;
-  var ui = { tab: 'home', viewingCycleId: null, planUnit: 'monthly' };
+  var ui = { tab: 'home', viewingCycleId: null, planUnit: 'monthly', creditExpanded: {} };
   var _pendingStorageRefresh = false;
 
   // ===== Lazy migration options (seed only generated if v0 path taken) =====
@@ -237,7 +237,7 @@ var App = (function () {
     if (ui.tab === 'home') html = HomeView.render(state, { todayISO: todayISO() });
     else if (ui.tab === 'history') html = HistoryView.render(state, { todayISO: todayISO(), viewingCycleId: ui.viewingCycleId });
     else if (ui.tab === 'plan') html = PlanView.render(state, { todayISO: todayISO(), unit: ui.planUnit });
-    else if (ui.tab === 'credit') html = LiabilitiesView.render(state, { todayISO: todayISO() });
+    else if (ui.tab === 'credit') html = LiabilitiesView.render(state, { todayISO: todayISO(), expanded: ui.creditExpanded });
     app.innerHTML = html + _renderTabbar() + _renderFab();
   }
   function _renderTabbar() {
@@ -293,6 +293,8 @@ var App = (function () {
     if (unpayBtn) { _markLiability(unpayBtn.getAttribute('data-liab-id'), false); return; }
     var payAll = e.target.closest('[data-action="mark-all-paid"]');
     if (payAll) { _markAllLiabilitiesPaid(); return; }
+    var showAll = e.target.closest('[data-action="credit-show-all"]');
+    if (showAll) { var sec = showAll.getAttribute('data-section'); ui.creditExpanded[sec] = !ui.creditExpanded[sec]; render(); return; }
     var recordWifePay = e.target.closest('[data-action="record-wife-payment"]');
     if (recordWifePay) { _openWifePayment(null); return; }
     var wifePaidBtn = e.target.closest('[data-action="mark-wife-paid"]');

@@ -43,12 +43,29 @@ var LiabilitiesView = (function () {
       + '</li>';
   }
 
+  // Show this many rows before collapsing the rest behind a "Show all" tap.
+  var COLLAPSE_LIMIT = 5;
+
   // Wrap a section's rows in one enclosing card so the list reads as a single
-  // panel with hairline row dividers, instead of a stack of separate pills.
-  function _listCard(header, rows) {
+  // panel with hairline row dividers (no per-row pills, no inner scroll box).
+  // Long lists cap at COLLAPSE_LIMIT rows with a "Show all (N)" / "Show less"
+  // footer instead of an internal scroll box, so the card never slices a row.
+  // `rowsArr` is an array of row-HTML strings; `sectionKey` + `expanded` drive
+  // the expander (state lives in app.js `ui.creditExpanded`).
+  function _listCard(header, rowsArr, sectionKey, expanded) {
+    var total = rowsArr.length;
+    var showAll = expanded || total <= COLLAPSE_LIMIT;
+    var visible = showAll ? rowsArr : rowsArr.slice(0, COLLAPSE_LIMIT);
+    var footer = '';
+    if (total > COLLAPSE_LIMIT) {
+      footer = '<button class="credit-showall" data-action="credit-show-all" data-section="' + sectionKey + '">'
+        + (expanded ? I18n.t('credit_show_less') : I18n.t('credit_show_all', { n: total }))
+        + '</button>';
+    }
     return '<div class="credit-card">'
       + (header || '')
-      + '<ul class="txn-list txn-scroll">' + rows + '</ul>'
+      + '<ul class="txn-list">' + visible.join('') + '</ul>'
+      + footer
       + '</div>';
   }
 
@@ -70,6 +87,7 @@ var LiabilitiesView = (function () {
     var sum = Calc.liabilitySummary(state);
     var wife = Calc.wifeSummary(state);
     var currency = state.settings.currency;
+    var expanded = (ctx && ctx.expanded) || {};
 
     var header = ''
       + '<header class="app-header">'
@@ -106,17 +124,17 @@ var LiabilitiesView = (function () {
 
     var wifePurchasesHTML = wife.purchases.length
       ? _listCard('<div class="section-h">' + I18n.t('wife_purchases_section') + '</div>',
-          wife.purchases.map(function (t) { return _wifePurchaseRow(t, state, false); }).join(''))
+          wife.purchases.map(function (t) { return _wifePurchaseRow(t, state, false); }), 'wifePurchases', expanded.wifePurchases)
       : '';
 
     var wifeReimbursedHTML = wife.settledPurchases.length
       ? _listCard('<div class="section-h">' + I18n.t('wife_reimbursed_section') + '</div>',
-          wife.settledPurchases.map(function (t) { return _wifePurchaseRow(t, state, true); }).join(''))
+          wife.settledPurchases.map(function (t) { return _wifePurchaseRow(t, state, true); }), 'wifeReimbursed', expanded.wifeReimbursed)
       : '';
 
     var wifePaymentsHTML = wife.payments.length
       ? _listCard('<div class="section-h">' + I18n.t('wife_payments_section') + '</div>',
-          wife.payments.map(function (p) { return _wifePaymentRow(p, currency); }).join(''))
+          wife.payments.map(function (p) { return _wifePaymentRow(p, currency); }), 'wifePayments', expanded.wifePayments)
       : '';
 
     var wifeSection = (wife.purchases.length || wife.settledPurchases.length || wife.payments.length || wife.balance !== 0)
@@ -124,14 +142,14 @@ var LiabilitiesView = (function () {
       : '';
 
     var unpaidHTML = sum.items.length
-      ? _listCard('', sum.items.map(function (t) { return _row(t, state, { paid: false }); }).join(''))
+      ? _listCard('', sum.items.map(function (t) { return _row(t, state, { paid: false }); }), 'unpaid', expanded.unpaid)
       : '<div class="empty-state"><div class="e-emoji">✅</div><div class="e-title">' + I18n.t('credit_empty') + '</div></div>';
 
     var paidHTML = '';
     if (sum.paidItems.length) {
       paidHTML = _listCard(
         '<div class="section-h">' + I18n.t('credit_paid_section') + '</div>',
-        sum.paidItems.map(function (t) { return _row(t, state, { paid: true }); }).join(''));
+        sum.paidItems.map(function (t) { return _row(t, state, { paid: true }); }), 'paid', expanded.paid);
     }
 
     return header

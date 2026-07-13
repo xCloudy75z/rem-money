@@ -284,7 +284,7 @@ var App = (function () {
     var delCatBtn = e.target.closest('[data-del-cat-id]');
     if (delCatBtn) { _deleteCategoryFlow(delCatBtn.getAttribute('data-del-cat-id')); return; }
     var editCatRow = e.target.closest('[data-edit-cat-id]');
-    if (editCatRow) { _openEditCategory(editCatRow.getAttribute('data-edit-cat-id')); return; }
+    if (editCatRow) { _openCategoryTxns(editCatRow.getAttribute('data-edit-cat-id')); return; }
     var cycChip = e.target.closest('[data-cycle-id]');
     if (cycChip) { ui.viewingCycleId = cycChip.getAttribute('data-cycle-id'); render(); return; }
     var payBtn = e.target.closest('[data-action="mark-paid"]');
@@ -508,6 +508,23 @@ var App = (function () {
           state = Store.addCategory(state, cat);
           persist(); render();
         } catch (err) { Toast.show({ message: err.message, variant: 'error' }); }
+      }
+    });
+  }
+
+  // Tap a category on the Plan page → its transactions for the active cycle.
+  // Editing the budget/category moves inside this sheet (Option A). Tapping a
+  // spend opens the normal edit sheet (which closes this one).
+  function _openCategoryTxns(id) {
+    var cat = state.categories[id];
+    var cyc = Calc.activeCycle(state);
+    if (!cat || !cyc) return;
+    CategoryTxnsSheet.open({
+      state: state, categoryId: id, cycleId: cyc.id, cycle: cyc, currency: state.settings.currency,
+      onEditCategory: function () { _openEditCategory(id); },
+      onEditTxn: function (txnId) {
+        var txn = state.transactions[txnId];
+        if (txn) EditSheet.open(state, txn, function (action, patch) { _onEditAction(txnId, action, patch); });
       }
     });
   }

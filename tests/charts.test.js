@@ -95,3 +95,24 @@ test('categoryBreakdown: net-negative (refund-heavy) categories are dropped from
   assert.strictEqual(b.donutTotal, 300);        // wedges divide the positive sum
   assert.strictEqual(b.total, 250);             // signed cycle total (300 − 50)
 });
+
+// ---------- categoryTransactions ----------
+test('categoryTransactions: only that category, this cycle, newest first, signed total', () => {
+  let s = seedCycle('2026-06-01', '2026-06-30', 3000);
+  s = Store.addTransaction(s, tx('t1', '2026-06-03', 100, 'a'));
+  s = Store.addTransaction(s, tx('t2', '2026-06-10', 40, 'a', { isRefund: true }));
+  s = Store.addTransaction(s, tx('t3', '2026-06-07', 25, 'a'));
+  s = Store.addTransaction(s, tx('t4', '2026-06-08', 999, 'b')); // other category
+  const r = Calc.categoryTransactions(s, 'a', 'c1');
+  assert.strictEqual(r.count, 3);
+  assert.deepStrictEqual(r.txns.map((t) => t.id), ['t2', 't3', 't1']); // date desc
+  assert.strictEqual(r.total, 85); // 100 − 40 + 25
+});
+
+test('categoryTransactions: empty when the category has nothing this cycle', () => {
+  const s = seedCycle('2026-06-01', '2026-06-30', 3000);
+  const r = Calc.categoryTransactions(s, 'a', 'c1');
+  assert.strictEqual(r.count, 0);
+  assert.strictEqual(r.total, 0);
+  assert.deepStrictEqual(r.txns, []);
+});

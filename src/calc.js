@@ -402,6 +402,19 @@ var Calc = (function () {
     };
   }
 
+  // All transactions in one category within a cycle, newest first, with the
+  // signed total (refunds subtract). Powers the "tap a category" drill-in. Pure.
+  function categoryTransactions(state, categoryId, cycleId) {
+    var txns = cycleTransactions(state, cycleId).filter(function (t) { return t.categoryId === categoryId; });
+    txns.sort(function (a, b) {
+      return (b.date || '').localeCompare(a.date || '')
+        || (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+    var total = 0;
+    for (var i = 0; i < txns.length; i++) total += txnSignedAmount(txns[i]);
+    return { txns: txns, total: Math.round(total * 100) / 100, count: txns.length };
+  }
+
   // The id of the cycle whose date range contains dateISO (archived or not), else
   // null. Pure/geometric; the archived/active policy lives in the import layer.
   function cycleIdForDate(state, dateISO) {
@@ -432,6 +445,7 @@ var Calc = (function () {
     wifeSummary: wifeSummary,
     monthlyBudget: monthlyBudget,
     categorySpentThisCycle: categorySpentThisCycle,
+    categoryTransactions: categoryTransactions,
     planSummary: planSummary,
     cycleIdForDate: cycleIdForDate
   };

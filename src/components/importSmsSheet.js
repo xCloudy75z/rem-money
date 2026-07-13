@@ -96,28 +96,28 @@ var ImportSmsSheet = (function () {
     function _row(it) {
       var showCyc = (it.group === 'needs');   // only back-dated/closed/no-cycle rows pick a cycle
       return '<div class="sms-row" data-idx="' + it.idx + '">'
-        + '<div class="sms-row-top">'
+        + '<div class="sms-r1">'
         +   '<label class="sms-inc-wrap">'
         +     '<input type="checkbox" class="sms-inc" aria-label="' + I18n.t('sms_include') + '"' + (it.include ? ' checked' : '') + '>'
         +     '<span class="sms-inc-box" aria-hidden="true">✓</span>'
         +   '</label>'
-        +   '<div class="sms-cat-wrap">'
-        +     '<select class="input sms-cat" aria-label="category"' + (it.categoryId ? '' : ' data-empty') + '>' + _catOptions(it.categoryId) + '</select>'
-        +     '<button type="button" class="chip sms-repeat" tabindex="0" hidden><span class="sms-repeat-lbl"></span></button>'
-        +   '</div>'
+        +   '<select class="input sms-cat" aria-label="category"' + (it.categoryId ? '' : ' data-empty') + '>' + _catOptions(it.categoryId) + '</select>'
+        + '</div>'
+        + '<div class="sms-r2">'
+        +   '<input class="input sms-amt" type="number" min="0" inputmode="decimal" value="' + it.amount + '" aria-label="amount">'
+        +   '<input class="input sms-date" type="date" value="' + it.dateISO + '" aria-label="date">'
+        + '</div>'
+        + '<input class="input sms-note" maxlength="280" value="' + Format.escapeHTML(it.note) + '" aria-label="note">'
+        + (showCyc
+            ? '<select class="input sms-cyc" aria-label="cycle">' + _cycleOptions(it.cycleId) + '</select>'
+            : '<input type="hidden" class="sms-cyc" value="' + it.cycleId + '">')
+        + '<div class="sms-r3">'
+        +   '<button type="button" class="chip sms-repeat" tabindex="0" style="display:none"><span class="sms-repeat-lbl"></span></button>'
         +   '<label class="sms-wife" title="' + I18n.t('sms_wife') + '">'
         +     '<input type="checkbox" class="sms-wife-cb"' + (it.byWife ? ' checked' : '') + '>'
         +     '<span class="sms-switch" aria-hidden="true"></span>'
         +     '<span class="sms-wife-lbl">' + I18n.t('sms_wife') + '</span>'
         +   '</label>'
-        + '</div>'
-        + '<div class="sms-row-bot">'
-        +   '<input class="input sms-amt" type="number" min="0" inputmode="decimal" value="' + it.amount + '" aria-label="amount">'
-        +   '<input class="input sms-date" type="date" value="' + it.dateISO + '" aria-label="date">'
-        +   '<input class="input sms-note" maxlength="280" value="' + Format.escapeHTML(it.note) + '" aria-label="note">'
-        +   (showCyc
-            ? '<select class="input sms-cyc" aria-label="cycle">' + _cycleOptions(it.cycleId) + '</select>'
-            : '<input type="hidden" class="sms-cyc" value="' + it.cycleId + '">')
         + '</div>'
         + '</div>';
     }
@@ -229,8 +229,8 @@ var ImportSmsSheet = (function () {
       wrap.querySelectorAll('.sms-row[data-idx]').forEach(function (el) {
         var it = _itemByIdx(+el.getAttribute('data-idx'));
         var chip = el.querySelector('.sms-repeat'); if (!chip) return;
-        var show = lc && it && it.include && it.categoryId !== lastCatId;
-        chip.hidden = !show;
+        var show = !!(lc && it && it.include && it.categoryId !== lastCatId);
+        chip.style.display = show ? '' : 'none';   // .chip's display overrides [hidden], so toggle inline
         if (show) chip.querySelector('.sms-repeat-lbl').textContent = (lc.icon || '•') + ' ' + lc.name;
       });
     }

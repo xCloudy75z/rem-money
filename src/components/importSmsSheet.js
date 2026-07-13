@@ -15,7 +15,8 @@ var ImportSmsSheet = (function () {
       .sort(function (a, b) { return b.startDate.localeCompare(a.startDate); });
     var activeCycleId = state.settings.activeCycleId;
 
-    var m = { phase: 'paste', items: [], unrecognized: [], dirty: false };
+    var m = { phase: 'paste', items: [], unrecognized: [], dirty: false, touched: {}, attemptedAdd: false };
+    var lastCatId = '';
 
     // existing-txn dup keys (amount|NOTE|date|time)
     var existing = {};
@@ -63,6 +64,7 @@ var ImportSmsSheet = (function () {
       });
       m.phase = 'preview';
       body().innerHTML = _previewHTML();
+      _syncRepeatChips();
       _refreshFooter();
     }
 
@@ -95,24 +97,37 @@ var ImportSmsSheet = (function () {
       var showCyc = (it.group === 'needs');   // only back-dated/closed/no-cycle rows pick a cycle
       return '<div class="sms-row" data-idx="' + it.idx + '">'
         + '<div class="sms-row-main">'
-        +   '<input type="checkbox" class="sms-inc"' + (it.include ? ' checked' : '') + '>'
+        +   '<label class="sms-inc-wrap">'
+        +     '<input type="checkbox" class="sms-inc" aria-label="' + I18n.t('sms_include') + '"' + (it.include ? ' checked' : '') + '>'
+        +     '<span class="sms-inc-box" aria-hidden="true">✓</span>'
+        +   '</label>'
         +   '<input class="input sms-amt" type="number" min="0" inputmode="decimal" value="' + it.amount + '" aria-label="amount">'
         +   '<input class="input sms-date" type="date" value="' + it.dateISO + '" aria-label="date">'
-        +   '<select class="input sms-cat" aria-label="category">' + _catOptions(it.categoryId) + '</select>'
+        +   '<div class="sms-cat-wrap">'
+        +     '<select class="input sms-cat" aria-label="category"' + (it.categoryId ? '' : ' data-empty') + '>' + _catOptions(it.categoryId) + '</select>'
+        +     '<button type="button" class="chip sms-repeat" tabindex="0" hidden><span class="sms-repeat-lbl"></span></button>'
+        +   '</div>'
         + '</div>'
         + '<input class="input sms-note" maxlength="280" value="' + Format.escapeHTML(it.note) + '" aria-label="note">'
         + '<div class="sms-row-opts">'
-        +   '<label class="sms-wife"><input type="checkbox" class="sms-wife-cb"' + (it.byWife ? ' checked' : '') + '> ' + I18n.t('sms_wife') + '</label>'
-        +   (showCyc ? '<select class="input sms-cyc" aria-label="cycle">' + _cycleOptions(it.cycleId) + '</select>' : '<input type="hidden" class="sms-cyc" value="' + it.cycleId + '">')
+        +   '<label class="sms-wife"><span class="sms-wife-lbl">' + I18n.t('sms_wife') + '</span>'
+        +     '<input type="checkbox" class="sms-wife-cb"' + (it.byWife ? ' checked' : '') + '>'
+        +     '<span class="sms-switch" aria-hidden="true"></span></label>'
+        +   (showCyc
+            ? '<select class="input sms-cyc" aria-label="cycle">' + _cycleOptions(it.cycleId) + '</select>'
+            : '<input type="hidden" class="sms-cyc" value="' + it.cycleId + '">')
         + '</div>'
         + '</div>';
     }
     function _group(key, titleKey) {
       var list = m.items.filter(function (it) { return it.group === key; });
       if (!list.length) return '';
-      var rows = (key === 'notspend')
-        ? list.map(function (it) { return '<div class="sms-row ro">' + Format.escapeHTML(it.raw) + '</div>'; }).join('')
-        : list.map(_row).join('');
+      if (key === 'notspend') {
+        var roRows = list.map(function (it) { return '<div class="sms-row ro">' + Format.escapeHTML(it.raw) + '</div>'; }).join('');
+        return '<div class="section-h">' + I18n.t(titleKey) + '<span class="right">' + I18n.t('sms_group_readonly_note') + '</span></div>'
+          + '<div class="sms-ro-block">' + roRows + '</div>';
+      }
+      var rows = list.map(_row).join('');
       return '<div class="section-h">' + I18n.t(titleKey) + '</div>' + rows;
     }
     function _counts() {
@@ -123,8 +138,10 @@ var ImportSmsSheet = (function () {
     function _previewHTML() {
       var c = _counts();
       var unrec = m.unrecognized.length
-        ? '<div class="section-h">' + I18n.t('sms_group_unrecognized') + '</div>'
+        ? '<div class="section-h">' + I18n.t('sms_group_unrecognized') + '<span class="right">' + I18n.t('sms_group_readonly_note') + '</span></div>'
+          + '<div class="sms-ro-block">'
           + m.unrecognized.map(function (l) { return '<div class="sms-row ro">' + Format.escapeHTML(l) + '</div>'; }).join('')
+          + '</div>'
         : '';
       return '<div class="sheet-section">'
         + '<p style="color:var(--muted);font-size:12px;margin-bottom:10px">'
@@ -136,7 +153,7 @@ var ImportSmsSheet = (function () {
         + unrec
         + '</div>'
         + '<div class="sheet-footer" style="grid-template-columns:1fr;gap:6px">'
-        + '<p id="sms-blocker" style="color:var(--muted);font-size:12px;margin:0;cursor:pointer"></p>'
+        + '<button type="button" class="btn btn-ghost" id="sms-blocker" style="display:none;font-size:12px;min-height:0;padding:4px 0;border:none;color:var(--red);text-align:start"></button>'
         + '<button class="btn btn-primary btn-block" id="sms-add"></button>'
         + '</div>';
     }
@@ -154,6 +171,8 @@ var ImportSmsSheet = (function () {
       it.amount = isFinite(amt) ? Math.round(amt * 100) / 100 : NaN;
       it.dateISO = el.querySelector('.sms-date').value;
       it.categoryId = el.querySelector('.sms-cat').value;
+      el.querySelector('.sms-cat').toggleAttribute('data-empty', !it.categoryId);
+      if (it.categoryId) lastCatId = it.categoryId;
       it.note = el.querySelector('.sms-note').value;
       it.byWife = el.querySelector('.sms-wife-cb').checked;
       var cyc = el.querySelector('.sms-cyc');
@@ -184,21 +203,37 @@ var ImportSmsSheet = (function () {
         var it = _itemByIdx(+el.getAttribute('data-idx'));
         if (!it) return;
         var ok = _isValid(it);
-        el.classList.toggle('blocked', it.include && !ok);
+        el.classList.toggle('included', it.include);
+        el.classList.toggle('ok', it.include && ok);
+        el.classList.toggle('blocked',
+          it.include && !ok && (m.attemptedAdd || m.touched[el.getAttribute('data-idx')]));
         if (ok) addable++;
         else if (it.include) blocked++;
       });
       addBtn.textContent = I18n.t('sms_add_n', { n: addable });
       addBtn.disabled = addable === 0;
       blocker.textContent = blocked ? I18n.t('sms_blocked', { n: blocked }) : '';
+      blocker.style.display = blocked ? '' : 'none';
+      _syncRepeatChips();
     }
     function _scrollToFirstBlocked() {
       var first = wrap.querySelector('.sms-row.blocked');
       if (first) first.scrollIntoView({ block: 'center' });
     }
+    function _syncRepeatChips() {
+      var lc = lastCatId ? state.categories[lastCatId] : null;
+      wrap.querySelectorAll('.sms-row[data-idx]').forEach(function (el) {
+        var it = _itemByIdx(+el.getAttribute('data-idx'));
+        var chip = el.querySelector('.sms-repeat'); if (!chip) return;
+        var show = lc && it && it.include && it.categoryId !== lastCatId;
+        chip.hidden = !show;
+        if (show) chip.querySelector('.sms-repeat-lbl').textContent = (lc.icon || '•') + ' ' + lc.name;
+      });
+    }
 
     // ---- commit (from the model, not the DOM) ----
     function _commit() {
+      m.attemptedAdd = true; _refreshFooter();
       var out = [], doneIdx = [];
       m.items.forEach(function (it) {
         if (!_isValid(it)) return;
@@ -216,6 +251,7 @@ var ImportSmsSheet = (function () {
       var left = m.items.filter(function (it) { return it.group !== 'notspend'; }).length;
       if (!left) { Sheet.close(); return; }
       body().innerHTML = _previewHTML();
+      _syncRepeatChips();
       _refreshFooter();
       Toast.show({ message: I18n.t('sms_remaining', { added: out.length, left: left }), variant: 'success' });
     }
@@ -230,12 +266,20 @@ var ImportSmsSheet = (function () {
         return;
       }
       if (t.id === 'sms-add') { _commit(); return; }
+      if (t.closest && t.closest('.sms-repeat')) {
+        var rrow = t.closest('.sms-row[data-idx]');
+        var rsel = rrow.querySelector('.sms-cat');
+        rsel.value = lastCatId; m.dirty = true;
+        m.touched[rrow.getAttribute('data-idx')] = true;
+        _writeBack(rrow); _refreshFooter(); return;
+      }
       if (t.id === 'sms-blocker') { _scrollToFirstBlocked(); return; }
     });
     function _onEdit(e) {
       var el = e.target.closest && e.target.closest('.sms-row[data-idx]');
       if (!el) return;
       m.dirty = true;
+      m.touched[el.getAttribute('data-idx')] = true;
       _writeBack(el);
       _refreshFooter();
     }

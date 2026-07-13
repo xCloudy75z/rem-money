@@ -121,7 +121,7 @@ v2/
 │   ├── i18n.js             # STRINGS.en + t()
 │   ├── sw.js               # service worker (copied to dist/ by build)
 │   ├── views/{home, history, pastCycle, plan, liabilities, landing}.js
-│   ├── components/{sheet, toast, confirmDialog, entrySheet, editSheet, settingsSheet, onboardingSheet, cycleRolloverSheet, reassignSheet}.js
+│   ├── components/{sheet, toast, confirmDialog, entrySheet, editSheet, recordPaymentSheet, settingsSheet, onboardingSheet, cycleRolloverSheet, reassignSheet, editValueSheet, categorySheet, categoryTxnsSheet, importSmsSheet}.js
 │   └── styles/main.css     # all tokens + components, RTL-ready logical properties
 ├── scripts/
 │   ├── build.js            # inliner: src/* → dist/index.html
@@ -146,6 +146,6 @@ v2/
 See `docs/superpowers/specs/08-feature-inventory.md` §V2 and §Future. Highlights:
 - Arabic UI (fill `STRINGS.ar`, set `dir="rtl"`)
 - ~~Soft per-category budgets~~ ✅ **shipped 2026-06-26** — Plan tab + `budget`/`budgetPeriod`, `Calc.planSummary`; planning-only overlay (daily limit untouched). See [CHANGELOG.md](CHANGELOG.md).
-- Trend / sparkline charts (hand-rolled SVG)
+- ~~Trend / sparkline charts (hand-rolled SVG)~~ ✅ **shipped 2026-07-13** — Home pace line (`Calc.paceSeries`) + Plan category donut (`Calc.categoryBreakdown`), inline SVG, no deps. See [CHANGELOG.md](CHANGELOG.md).
 - Search, swipe-to-delete, keyboard shortcuts
 - Cloud sync (Supabase/Firebase) via the existing JSON envelope as wire format

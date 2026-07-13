@@ -4,8 +4,8 @@
 
 ## V1 status: ✅ SHIPPED & DEPLOYED
 
-All 8 layers complete. **334/334 tests green.** Lint clean. Built artifact: ~200 KB inlined HTML + 2 KB service worker.
-Latest: **Import spends from card SMS** shipped and confirmed on iPhone (iOS layout fix verified by the user 2026-07-13). See [HANDOVER.md](HANDOVER.md) for the next-session brief.
+All 8 layers complete. **364/364 tests green.** Lint clean. Built artifact: ~200 KB inlined HTML + 2 KB service worker.
+Latest: **card-list UI redesign, charts (pace line + category donut), no-budget tracking, and a category→transactions drill-in** shipped 2026-07-13, plus a **PWA cache-busting fix** so installed iPhone PWAs actually pick up new deploys. See [HANDOVER.md](HANDOVER.md) for the next-session brief.
 
 **Live:** https://xcloudy75z.github.io/rem-money/ — auto-deployed by CI on every push to `main`.
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHANGELOG.md) for recent changes.
@@ -33,6 +33,8 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHAN
 | 2026-06-26 | **Per-category budgets + Planning page** | Categories gain `budget`/`budgetPeriod` (`monthly`/`yearly`); new **Plan** tab (4th) lists categories with spent-this-cycle progress bars + a Monthly/Annual ×12 toggle; `Calc.monthlyBudget`/`categorySpentThisCycle`/`planSummary` (pure). Planning-only — daily limit/pace untouched. Category management consolidated onto the Plan page; Settings keeps a shortcut. Additive, no schema bump, back-filled by migrate. 264 → 278 tests. Merge `a01296a`, deployed live via CI. See [CHANGELOG.md](CHANGELOG.md). |
 | 2026-06-26 | **Unallocated readout · Refresh button · X-button fix** | Plan page gains an "Unallocated" pinned row + card line (`cycleBudget − totalPlanned`, red when over-allocated); `planSummary` returns `cycleBudget`/`unallocated`. Settings → App **Refresh app** button clears the cached shell + updates the SW + reloads (data kept). Fixed a pre-existing bug where the sheet **×** icon swallowed the close click (now matches nearest `[data-close]`). 278 → 280 tests. See [CHANGELOG.md](CHANGELOG.md). |
 | 2026-07-13 | **Import spends from card SMS** | Paste forwarded bank SMS → grouped editable preview (manual category per row, per-row **Wife** toggle) → bulk-add into the matching cycle, additive with Undo. Pure `smsParse` (declined-not-added, nothing dropped), `Calc.cycleIdForDate`, `Store.addTransactions` (null-cycle guard), shared `App._buildTxn`, `Sheet` close-guard. Compact 2-line card UI (44px targets, amber→green→red states) after a multi-agent UI attack. Full spec→break→plan→break→build→break→UI-attack cycle. 280 → 334 tests. See [CHANGELOG.md](CHANGELOG.md). |
+| 2026-07-13 | **Card-list UI · charts · category drill-in** | Credit lists redesigned as one enclosed card with hairline dividers + a "Show all (N)" expander (replaces the 222px scroll box); same `.card-list` style applied to Home's Today list and History's day groups. **Home pace line** (cumulative vs. ideal, SVG) and **Plan category donut** (`Calc.paceSeries`/`categoryBreakdown`). No-budget categories now show spend as "X / Not set" under a "Not budgeted" group. **Tap a category → its transactions this cycle** in a sheet with edit-inside (`Calc.categoryTransactions` + `CategoryTxnsSheet`). Each visual approved via a GitHub-Pages mockup before shipping. 334 → 364 tests. See [CHANGELOG.md](CHANGELOG.md). |
+| 2026-07-13 | **PWA cache-busting fix** | `CACHE_NAME` was tied to a hardcoded `VERSION`, so every deploy shipped a byte-identical `sw.js` and installed PWAs never updated. `build.js` now derives `VERSION` from the short commit SHA (`GITHUB_SHA` in CI), so the cache key changes each build and the SW installs/activates cleanly — updates finally reach the iPhone. localStorage data untouched. Commit `b942b6d`. See [CHANGELOG.md](CHANGELOG.md). |
 
 ## Deploy state
 

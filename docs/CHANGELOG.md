@@ -2,7 +2,43 @@
 
 Notable changes to Spending Tracker 2.0. Newest first.
 
-## 2026-07-13
+## 2026-07-13 — Card-list UI · charts · category drill-in
+
+### Added
+- **Pace line on Home.** An inline-SVG chart under the hero: cumulative spend (solid) vs. the even
+  "ideal" line (dashed), the actual line stopping at today with a marker + dot, and an
+  On-track / A-little-ahead / Over-pace tag. New pure `Calc.paceSeries`.
+- **"Where it went" donut on Plan.** Active-cycle spend split by category as a stacked
+  stroke-dasharray donut (top categories + an "Other" bucket) with a full-width legend below (name ·
+  amount · %). New pure `Calc.categoryBreakdown`.
+- **No-budget categories are now tracked, not hidden.** On the Plan page a category with no budget
+  shows its real spend as **"X / Not set"** with a faint empty track, grouped under a "Not budgeted"
+  subheader. Still excluded from Total planned / Unallocated.
+- **Tap a category → its transactions.** Tapping a category on the Plan page opens a sheet listing
+  that category's spends for the active cycle (newest first, refund green, credit/wife tags), with
+  Spent/Budget stat boxes and an "Edit budget & category" button (edit moved inside — "Option A").
+  Each spend taps through to the normal edit sheet. New pure `Calc.categoryTransactions` +
+  `CategoryTxnsSheet`. 334 → 364 tests.
+
+### Changed
+- **Credit lists redesigned as one enclosed card (Shelfie-style).** Each Credit list is now a single
+  card with hairline row dividers, roomy rows, a rounded-square soft icon, larger name/amount, and a
+  compact action pill inset from the edge. Long lists cap at 5 rows behind a **"Show all (N)" /
+  "Show less"** expander (`ui.creditExpanded`) — this **replaces the earlier same-day 222px internal
+  scroll box**, which sliced a row at the card edge and read as "overlapping/minimized".
+- **Home's Today list and History's per-day groups** now use the same enclosed `.card-list` style, so
+  the whole app reads as one design.
+
+### Fixed
+- **PWA updates now actually reach installed apps.** `build.js` derived `CACHE_NAME` from a hardcoded
+  `VERSION`, so every deploy emitted a byte-identical `sw.js`; installed PWAs saw no change and kept
+  serving the stale cached app. `VERSION` is now `2.0.0-<short commit SHA>` (GITHUB_SHA in CI), so the
+  cache key changes each build and the service worker installs/activates cleanly. Data (localStorage)
+  is untouched by the swap.
+- **Donut legend no longer truncates category names.** Legend moved below the chart at full width
+  (was crushed beside it to a single letter).
+
+## 2026-07-13 — SMS import
 
 ### Added
 - **Import spends from card SMS.** Settings → Backup → "📩 Add spends from messages": paste forwarded

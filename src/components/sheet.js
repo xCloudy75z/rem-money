@@ -43,7 +43,7 @@ var Sheet = (function () {
     root.appendChild(wrap);
 
     document.body.style.overflow = 'hidden';
-    current = { wrap: wrap, onClose: opts.onClose, lastFocus: lastFocus };
+    current = { wrap: wrap, onClose: opts.onClose, lastFocus: lastFocus, guard: opts.guard };
 
     _installFocusTrap(wrap);
 
@@ -52,14 +52,17 @@ var Sheet = (function () {
       (first || wrap.querySelector('.sheet')).focus();
     }, 50);
 
-    function onKey(e) { if (e.key === 'Escape') close(); }
+    function onKey(e) { if (e.key === 'Escape') { if (current && current.guard) { current.guard(); return; } close(); } }
     document.addEventListener('keydown', onKey);
     current.onKey = onKey;
 
     wrap.addEventListener('click', function (e) {
       // Use closest() so a click on a child of a [data-close] element (e.g. the
       // SVG icon inside the X button) still closes the sheet.
-      if (e.target.closest && e.target.closest('[data-close]')) close();
+      if (e.target.closest && e.target.closest('[data-close]')) {
+        if (current && current.guard) { current.guard(); return; }
+        close();
+      }
     });
 
     return wrap;

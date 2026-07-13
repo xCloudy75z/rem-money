@@ -87,6 +87,17 @@ var Store = (function () {
     return s;
   }
 
+  function addTransactions(state, txns) {
+    var s = clone(state);
+    for (var i = 0; i < txns.length; i++) {
+      var t = txns[i];
+      if (!t || !t.id) throw new Error('addTransactions: txn.id required');
+      if (!t.cycleId) throw new Error('addTransactions: txn.cycleId required');
+      s.transactions[t.id] = _enforceWife(t);
+    }
+    return s;
+  }
+
   function updateTransaction(state, id, patch) {
     if (!state.transactions[id]) throw new Error('updateTransaction: id not found');
     var s = clone(state);
@@ -212,7 +223,7 @@ var Store = (function () {
     empty: empty, clone: clone,
     parse: parse, save: save, load: load,
     snapshot: snapshot, restoreSnapshot: restoreSnapshot, clearSnapshot: clearSnapshot,
-    addTransaction: addTransaction, updateTransaction: updateTransaction, deleteTransaction: deleteTransaction,
+    addTransaction: addTransaction, addTransactions: addTransactions, updateTransaction: updateTransaction, deleteTransaction: deleteTransaction,
     setWifeSettled: setWifeSettled,
     addWifePayment: addWifePayment, deleteWifePayment: deleteWifePayment,
     addCategory: addCategory, updateCategory: updateCategory, archiveCategory: archiveCategory,

@@ -332,6 +332,18 @@ var Calc = (function () {
     };
   }
 
+  // The id of the cycle whose date range contains dateISO (archived or not), else
+  // null. Pure/geometric; the archived/active policy lives in the import layer.
+  function cycleIdForDate(state, dateISO) {
+    var cycles = (state && state.cycles) || {};
+    for (var id in cycles) {
+      var c = cycles[id];
+      if (!c) continue;
+      if (dateISO >= c.startDate && dateISO <= c.endDate) return id;
+    }
+    return null;
+  }
+
   return {
     daysBetweenInclusive: daysBetweenInclusive,
     activeCycle: activeCycle,
@@ -348,6 +360,7 @@ var Calc = (function () {
     wifeSummary: wifeSummary,
     monthlyBudget: monthlyBudget,
     categorySpentThisCycle: categorySpentThisCycle,
-    planSummary: planSummary
+    planSummary: planSummary,
+    cycleIdForDate: cycleIdForDate
   };
 })();

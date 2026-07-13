@@ -51,6 +51,16 @@ Run before any production deploy. Don't ship until everything below is ✅.
 - [ ] **Settings shortcut:** Settings → Categories shows a single **Manage categories** button that closes Settings and opens the Plan tab
 - [ ] **Delete category with txns:** from the Plan page, deleting a category that has spends prompts to reassign first (existing behavior preserved)
 
+## Import from messages (card SMS)
+
+- [ ] **Open:** Settings → Backup → **📩 Add spends from messages** opens the paste sheet
+- [ ] **Scan groups:** paste a batch of card SMS (incl. a declined line, a duplicate, a "was debited" transfer, and a junk line) → **Scan** → rows split into **Purchases** / **Needs your input** (the transfer) / **Possible repeats** (the duplicate, off) / **Not a spend** (the declined, read-only) / **Unrecognized** (the junk, read-only); the summary line counts each
+- [ ] **Gate:** each row starts with an empty **category**; "Add N" stays 0 and blocked rows show a red outline until you pick categories; tapping the blocker line scrolls to the first blocked row
+- [ ] **Wife toggle:** tick **Wife** on a purchase → after adding it appears under **Credit → "Wife owes you"** and is excluded from the daily pace
+- [ ] **Commit + partial:** add only some rows → the added ones land in History dated per the SMS; the sheet stays open with the rest **and your edits preserved**; Undo toast removes exactly the added set
+- [ ] **Dirty-check:** after editing rows, tap × / scrim → "Discard your reviewed rows?" confirm appears
+- [ ] **Cycle safety:** a back-dated / out-of-cycle SMS lands in **Needs your input** with a cycle picker (never silently into the current cycle)
+
 ## App update + sheets
 
 - [ ] **Refresh app:** Settings → App → **↻ Refresh app** shows "Getting the latest version…", reloads, and keeps all data

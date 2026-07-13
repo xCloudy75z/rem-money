@@ -2,6 +2,27 @@
 
 Notable changes to Spending Tracker 2.0. Newest first.
 
+## 2026-07-13
+
+### Added
+- **Import spends from card SMS.** Settings → Backup → "📩 Add spends from messages": paste forwarded
+  bank/card SMS, review a grouped, editable preview, and bulk-add the chosen spends into the matching
+  cycle — without wiping existing data (Undo included).
+  - **Parser** (`smsParse.js`, pure): recognizes card-purchase and account-debit formats; a declined/
+    reversed line is flagged "not a spend" and never added; nothing is silently dropped (repeats and
+    unrecognized lines are shown, defaulted off).
+  - **Review sheet** (`importSmsSheet.js`): five groups (Purchases / Needs your input / Possible repeats /
+    Not a spend / Unrecognized); you pick every category manually (no auto-guessing); a per-row **Wife**
+    toggle routes a spend into "Wife owes you". Per-row gate: a spend is added only when ticked and it has
+    a valid amount, category, date, and cycle. Back-dated / out-of-cycle dates go to "Needs your input"
+    (never silently into the current cycle); `Store.addTransactions` throws on a null cycle.
+  - **Compact card UI** (post multi-agent UI attack): 2-line cards (~118px), 44px tap targets, a calm
+    amber "needs a category" → green "ready" → red-only-after-you-try state model.
+  - Adds `Calc.cycleIdForDate`, `Store.addTransactions`, `App._buildTxn` (shared with manual entry), and a
+    `Sheet` close-guard (dirty-check). Additive, no schema bump. 280 → 334 tests.
+  - Process: spec → adversarial break (18 fixed) → plan → break (10 fixed) → build → break (1 fixed) →
+    UI attack (3 fixed). See specs/plans under `docs/superpowers/`.
+
 ## 2026-06-26
 
 ### Added

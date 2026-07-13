@@ -1,12 +1,25 @@
 // scripts/build.js — inlines src/*.js and src/styles/*.css into one dist/index.html
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const SRC  = path.join(ROOT, 'src');
 const DIST = path.join(ROOT, 'dist');
 
-const VERSION = '2.0.0';
+// Base app version + a per-build suffix so the service worker's CACHE_NAME
+// (st-<VERSION>) changes on every deploy. Without this the SW file is
+// byte-identical between builds, so installed PWAs never see a new version
+// and keep serving the stale cached app. Suffix = short commit SHA in CI /
+// local git; falls back to a build timestamp if git isn't available.
+const BASE_VERSION = '2.0.0';
+function buildId() {
+  var sha = process.env.GITHUB_SHA;
+  if (sha) return sha.slice(0, 7);
+  try { return execSync('git rev-parse --short HEAD', { cwd: ROOT }).toString().trim(); }
+  catch (e) { return 'b' + Date.now().toString(36); }
+}
+const VERSION = BASE_VERSION + '-' + buildId();
 
 function read(p) { return fs.readFileSync(p, 'utf8'); }
 function write(p, c) {

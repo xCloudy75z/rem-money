@@ -17,6 +17,55 @@ var HomeView = (function () {
       + '</li>';
   }
 
+  // Pace line: cumulative spend (solid) vs. the even ideal line (dashed), drawn
+  // as inline SVG. Actual line stops at today; dot marks where you stand.
+  function _paceCardHTML(pace, currency) {
+    var x0 = 38, x1 = 304, y0 = 16, y1 = 132;
+    var totalDays = pace.totalDays;
+    var maxCum = 0;
+    pace.days.forEach(function (d) { if (d.cumulative !== null && d.cumulative > maxCum) maxCum = d.cumulative; });
+    var yMax = Math.max(pace.budget, maxCum, 1);
+    function fx(i) { return totalDays > 1 ? x0 + (i - 1) / (totalDays - 1) * (x1 - x0) : x0; }
+    function fy(v) { return y1 - (v / yMax) * (y1 - y0); }
+    function r2(n) { return Math.round(n * 100) / 100; }
+    var pts = pace.days.filter(function (d) { return d.cumulative !== null; })
+      .map(function (d) { return r2(fx(d.dayIndex)) + ',' + r2(fy(d.cumulative)); });
+    var poly = pts.join(' ');
+    var firstX = pts.length ? pts[0].split(',')[0] : r2(fx(1));
+    var lastX = pts.length ? pts[pts.length - 1].split(',')[0] : r2(fx(1));
+    var area = pts.length ? ('M' + firstX + ',' + y1 + ' L' + pts.join(' L') + ' L' + lastX + ',' + y1 + ' Z') : '';
+    var todayX = r2(fx(pace.todayIndex));
+    var todayY = r2(fy(pace.spentToDate));
+    var ratio = pace.idealToDate > 0 ? pace.spentToDate / pace.idealToDate : 0;
+    var st = ratio <= 1.02 ? { t: I18n.t('pace_on_track'), c: 'good' }
+           : ratio <= 1.15 ? { t: I18n.t('pace_ahead'), c: 'warn' }
+           : { t: I18n.t('pace_over'), c: 'bad' };
+    var yMid = (y0 + y1) / 2;
+    return '<div class="summary-card pace-card">'
+      + '<div class="head"><span class="label">' + I18n.t('pace_line_title') + '</span>'
+      +   '<span class="chip ' + st.c + '">' + st.t + '</span></div>'
+      + '<svg viewBox="0 0 320 150" class="pace-svg" role="img" aria-label="Cumulative spend versus ideal pace">'
+      +   '<line x1="' + x0 + '" y1="' + y0 + '" x2="' + x1 + '" y2="' + y0 + '" class="p-grid"/>'
+      +   '<line x1="' + x0 + '" y1="' + yMid + '" x2="' + x1 + '" y2="' + yMid + '" class="p-grid"/>'
+      +   '<line x1="' + x0 + '" y1="' + y1 + '" x2="' + x1 + '" y2="' + y1 + '" class="p-grid"/>'
+      +   '<text x="' + (x0 - 4) + '" y="' + (y0 + 3) + '" class="p-ax" text-anchor="end">' + Math.round(yMax).toLocaleString('en-US') + '</text>'
+      +   '<text x="' + (x0 - 4) + '" y="' + y1 + '" class="p-ax" text-anchor="end">0</text>'
+      +   '<line x1="' + todayX + '" y1="' + y0 + '" x2="' + todayX + '" y2="' + y1 + '" class="p-today"/>'
+      +   '<line x1="' + r2(fx(1)) + '" y1="' + r2(fy(pace.days[0].ideal)) + '" x2="' + r2(fx(totalDays)) + '" y2="' + r2(fy(pace.budget)) + '" class="p-ideal"/>'
+      +   (area ? '<path d="' + area + '" class="p-area"/>' : '')
+      +   (poly ? '<polyline points="' + poly + '" class="p-line"/>' : '')
+      +   '<circle cx="' + todayX + '" cy="' + todayY + '" r="4" class="p-dot"/>'
+      +   '<text x="' + x0 + '" y="147" class="p-ax" text-anchor="start">' + Format.escapeHTML(Format.fmtDateShort(pace.days[0].day)) + '</text>'
+      +   '<text x="' + todayX + '" y="147" class="p-ax" text-anchor="middle">' + I18n.t('today') + '</text>'
+      +   '<text x="' + x1 + '" y="147" class="p-ax" text-anchor="end">' + Format.escapeHTML(Format.fmtDateShort(pace.days[totalDays - 1].day)) + '</text>'
+      + '</svg>'
+      + '<div class="pace-legend">'
+      +   '<span class="pl"><span class="pl-sw line"></span>' + I18n.t('pace_you') + ' · ' + Format.fmtMoney(pace.spentToDate, currency) + '</span>'
+      +   '<span class="pl"><span class="pl-sw dash"></span>' + I18n.t('pace_ideal') + ' · ' + Format.fmtMoney(pace.idealToDate, currency) + '</span>'
+      + '</div>'
+      + '</div>';
+  }
+
   function render(state, ctx) {
     var today = ctx.todayISO;
     var cyc = Calc.activeCycle(state);
@@ -49,6 +98,9 @@ var HomeView = (function () {
 
     var daysLabel = daysLeft === 1 ? I18n.t('day_left') : I18n.t('days_left', { n: daysLeft });
 
+    var pace = Calc.paceSeries(state, cyc.id, today);
+    var paceCard = (pace && pace.budget > 0) ? _paceCardHTML(pace, state.settings.currency) : '';
+
     return ''
       + '<header class="app-header">'
       +   '<div class="app-title">' + I18n.t('app_title') + ' <small>· ' + Format.fmtDateShort(cyc.startDate) + ' → ' + Format.fmtDateShort(cyc.endDate) + '</small></div>'
@@ -66,6 +118,7 @@ var HomeView = (function () {
       +       '<span class="chip">' + daysLabel + '</span>'
       +     '</div>'
       +   '</div>'
+      +   paceCard
       +   '<div class="section-h">' + I18n.t('today_label') + '</div>'
       +   todayList
       + '</div>';

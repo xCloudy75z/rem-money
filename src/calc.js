@@ -189,6 +189,76 @@ var Calc = (function () {
     return { total: total, avgDaily: avgDaily, biggestDay: biggestDay, biggestTxn: biggestTxn, topCategories: topCategories };
   }
 
+  // ---- Pace line: cumulative spend per cycle-day vs. the even "ideal" line ----
+  // One point per day of the cycle. `cumulative` is the running spend total up to
+  // and including that day (excluded-from-pace items don't count, matching pace);
+  // it is null for days after today so the actual line stops at "today". `ideal`
+  // is where an even spender would be: budget * dayIndex / totalDays. Pure.
+  function paceSeries(state, cycleId, todayISO) {
+    var cycle = state.cycles && state.cycles[cycleId];
+    if (!cycle) return null;
+    var totalDays = daysBetweenInclusive(cycle.startDate, cycle.endDate);
+    var budget = Number(cycle.startBudget) || 0;
+    var byDay = historicalLimitsByDay(state, cycleId);
+    var days = [];
+    var cum = 0;
+    var day = cycle.startDate;
+    var idx = 0;
+    var todayIndex = null;
+    var spentToDate = 0;
+    var idealToDate = 0;
+    while (true) {
+      idx++;
+      var spent = (byDay[day] && byDay[day].spent) || 0;
+      cum = Math.round((cum + spent) * 100) / 100;
+      var ideal = totalDays > 0 ? Math.round((budget * idx / totalDays) * 100) / 100 : 0;
+      var isFuture = todayISO ? (day > todayISO) : false;
+      days.push({ day: day, dayIndex: idx, ideal: ideal, cumulative: isFuture ? null : cum, isToday: day === todayISO });
+      if (day === todayISO) { todayIndex = idx; spentToDate = cum; idealToDate = ideal; }
+      if (day === cycle.endDate) break;
+      day = _addDays(day, 1);
+    }
+    if (todayIndex === null) {
+      // Today is outside the cycle (viewing a past/future cycle): clamp sensibly.
+      if (todayISO && todayISO > cycle.endDate) { todayIndex = totalDays; spentToDate = cum; idealToDate = budget; }
+      else { todayIndex = 1; spentToDate = days[0].cumulative || 0; idealToDate = days[0].ideal; }
+    }
+    return { totalDays: totalDays, budget: budget, days: days, todayIndex: todayIndex, spentToDate: spentToDate, idealToDate: idealToDate };
+  }
+
+  // ---- Category breakdown for the donut: top-N categories by (positive) spend
+  // in a cycle, with the remainder lumped as "other". Net-negative categories
+  // (refund-heavy) are dropped from the wedges. `total` is the signed cycle total
+  // for the centre label; `donutTotal` is the sum the wedges divide. Pure.
+  function categoryBreakdown(state, cycleId, topN) {
+    var cycle = state.cycles && state.cycles[cycleId];
+    if (!cycle) return null;
+    var txns = cycleTransactions(state, cycleId).filter(function (t) { return !t.isExcludedFromPace; });
+    var byCat = {};
+    var total = 0;
+    for (var i = 0; i < txns.length; i++) {
+      var s = txnSignedAmount(txns[i]);
+      byCat[txns[i].categoryId] = (byCat[txns[i].categoryId] || 0) + s;
+      total += s;
+    }
+    var arr = Object.keys(byCat).map(function (id) {
+      return { categoryId: id, amount: Math.round(byCat[id] * 100) / 100 };
+    }).filter(function (c) { return c.amount > 0; })
+      .sort(function (a, b) { return b.amount - a.amount; });
+    var n = topN || 5;
+    var slices = arr.slice(0, n);
+    var rest = arr.slice(n);
+    var otherAmount = Math.round(rest.reduce(function (sum, c) { return sum + c.amount; }, 0) * 100) / 100;
+    var donutTotal = Math.round((slices.reduce(function (sum, c) { return sum + c.amount; }, 0) + otherAmount) * 100) / 100;
+    return {
+      total: Math.round(total * 100) / 100,
+      donutTotal: donutTotal,
+      slices: slices,
+      otherAmount: otherAmount,
+      otherCount: rest.length
+    };
+  }
+
   // ---- Credit / liability overlay (global, across ALL cycles) ----
   // A credit spend still counts toward its cycle budget like any other spend;
   // this is a separate running tally of what is still owed. Refunds tagged as
@@ -356,6 +426,8 @@ var Calc = (function () {
     pace: pace,
     historicalLimitsByDay: historicalLimitsByDay,
     cycleSummary: cycleSummary,
+    paceSeries: paceSeries,
+    categoryBreakdown: categoryBreakdown,
     liabilitySummary: liabilitySummary,
     wifeSummary: wifeSummary,
     monthlyBudget: monthlyBudget,

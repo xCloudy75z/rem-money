@@ -157,7 +157,18 @@ var ImportSmsSheet = (function () {
       it.note = el.querySelector('.sms-note').value;
       it.byWife = el.querySelector('.sms-wife-cb').checked;
       var cyc = el.querySelector('.sms-cyc');
-      if (cyc) it.cycleId = cyc.value;
+      if (cyc && cyc.tagName === 'SELECT') {
+        // 'Needs your input' rows: owner picks the cycle explicitly.
+        it.cycleId = cyc.value;
+      } else {
+        // Purchase/repeat rows have no picker — re-resolve the cycle from the
+        // (possibly edited) date so a changed date can never mis-file into the
+        // stale scan-time cycle. If it no longer lands in an open cycle, blank
+        // the cycle so the row is blocked (gate) rather than filed wrongly.
+        var rc = it.dateISO ? Calc.cycleIdForDate(state, it.dateISO) : null;
+        var rcObj = rc ? state.cycles[rc] : null;
+        it.cycleId = (rc && !(rcObj && rcObj.archivedAt)) ? rc : '';
+      }
     }
     function _isValid(it) {
       return it.include && isFinite(it.amount) && it.amount > 0 && it.categoryId && it.dateISO && it.cycleId;

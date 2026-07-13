@@ -5,7 +5,7 @@
 ## V1 status: ✅ SHIPPED & DEPLOYED
 
 All 8 layers complete. **334/334 tests green.** Lint clean. Built artifact: ~200 KB inlined HTML + 2 KB service worker.
-Latest: **Import spends from card SMS** shipped (iOS layout fix pending a user screenshot confirmation). See [HANDOVER.md](HANDOVER.md) for the next-session brief.
+Latest: **Import spends from card SMS** shipped and confirmed on iPhone (iOS layout fix verified by the user 2026-07-13). See [HANDOVER.md](HANDOVER.md) for the next-session brief.
 
 **Live:** https://xcloudy75z.github.io/rem-money/ — auto-deployed by CI on every push to `main`.
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHANGELOG.md) for recent changes.

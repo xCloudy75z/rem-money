@@ -23,6 +23,14 @@ Notable changes to Spending Tracker 2.0. Newest first.
   - Process: spec → adversarial break (18 fixed) → plan → break (10 fixed) → build → break (1 fixed) →
     UI attack (3 fixed). See specs/plans under `docs/superpowers/`.
 
+### Changed
+- **Credit page long lists now scroll inside a fixed box.** Each long transaction list on the Credit
+  page (unpaid, Paid, and the wife purchases / reimbursed / payments lists) sits in a ~4-row box
+  (`max-height: 222px`, `.txn-scroll`) that scrolls internally instead of stretching the page; a
+  half-row peek of the next row signals there's more, and lists of ≤4 rows show no scrollbar.
+  `scrollbar-gutter: stable` keeps the desktop scrollbar off the row buttons. CSS + one class only —
+  no change to row markup, section headers, or behaviour.
+
 ## 2026-06-26
 
 ### Added

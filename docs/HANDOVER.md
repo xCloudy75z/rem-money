@@ -17,7 +17,7 @@ Last updated: 2026-07-13.
 
 **Live & shipped:** rolling daily limit + pace; History; **Credit** tab (on-credit liabilities); **Wife reimbursement** ("Wife owes you"); **Per-category budgets + Plan tab** (monthly/yearly toggle, progress bars, unallocated readout); **Refresh app** button (Settings → App); sheet **X-button** fix; and **Import spends from card SMS** (Settings → Backup → 📩 Add spends from messages).
 
-**⏳ In-flight — awaiting user confirmation:** the SMS-import review sheet had a bad **iOS Safari** layout (native controls overlapping). Fixed on 2026-07-13 with a **stacked, iOS-safe row** (each control full-width on its own line: category / amount+date / note / Wife) — deployed to live (`9b079c6`). **The user will confirm on their iPhone in the next session via a screenshot.** If it's clean but feels too tall for a long batch, tighten the height (it was deliberately traded height-for-safety). If it's still broken, get a fresh screenshot before iterating.
+**✅ Confirmed done (2026-07-13):** the SMS-import review sheet had a bad **iOS Safari** layout (native controls overlapping). Fixed with a **stacked, iOS-safe row** (each control full-width on its own line: category / amount+date / note / Wife) — deployed to live (`9b079c6`). **The user confirmed on their iPhone it looks "much better" — no further layout work needed.** (If a future long-batch import ever feels too tall, height can be tightened; it was deliberately traded height-for-safety.)
 
 **Throwaway to clean up:** repo `xCloudy75z/rem-money-preview` still exists (a disposable preview). Couldn't auto-delete (token lacks `delete_repo` scope). Harmless; delete from its GitHub page when convenient.
 

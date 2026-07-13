@@ -204,11 +204,13 @@ var ImportSmsSheet = (function () {
       wrap.querySelectorAll('.sms-row[data-idx]').forEach(function (el) {
         var it = _itemByIdx(+el.getAttribute('data-idx'));
         if (!it) return;
-        var ok = _isValid(it);
-        el.classList.toggle('included', it.include);
-        el.classList.toggle('ok', it.include && ok);
+        var ok = !!_isValid(it);
+        // NB: classList.toggle treats an `undefined` 2nd arg as "no force" and
+        // FLIPS the class — so every boolean here must be coerced with !!.
+        el.classList.toggle('included', !!it.include);
+        el.classList.toggle('ok', !!(it.include && ok));
         el.classList.toggle('blocked',
-          it.include && !ok && (m.attemptedAdd || m.touched[el.getAttribute('data-idx')]));
+          !!(it.include && !ok && (m.attemptedAdd || m.touched[el.getAttribute('data-idx')])));
         if (ok) addable++;
         else if (it.include) blocked++;
       });

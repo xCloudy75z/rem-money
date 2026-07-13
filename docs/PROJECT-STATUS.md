@@ -1,10 +1,11 @@
 # Project Status — Spending Tracker 2.0
 
-**Last updated:** 2026-06-26
+**Last updated:** 2026-07-13
 
 ## V1 status: ✅ SHIPPED & DEPLOYED
 
-All 8 layers complete. 278/278 tests green. Lint clean. Built artifact: ~130 KB inlined HTML + 2 KB service worker.
+All 8 layers complete. **334/334 tests green.** Lint clean. Built artifact: ~200 KB inlined HTML + 2 KB service worker.
+Latest: **Import spends from card SMS** shipped (iOS layout fix pending a user screenshot confirmation). See [HANDOVER.md](HANDOVER.md) for the next-session brief.
 
 **Live:** https://xcloudy75z.github.io/rem-money/ — auto-deployed by CI on every push to `main`.
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the full pipeline and [CHANGELOG.md](CHANGELOG.md) for recent changes.

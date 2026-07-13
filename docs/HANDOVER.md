@@ -1,80 +1,95 @@
 # Handover — Spending Tracker 2.0
 
-For future-me, future-Claude, or any engineer picking this up.
+**For the next session (Claude or engineer). Read this top to bottom before doing anything.**
+Last updated: 2026-07-13.
 
-## What this is
+---
 
-Single-user offline-first PWA for tracking daily spending against a fixed cycle budget. Rebuilt from a legacy single-file app into this tested, modular version, which is now **deployed and live** at https://xcloudy75z.github.io/rem-money/.
+## 1. Snapshot
 
-> **Note:** This `v2/` folder is the source of truth and the git repo (`xCloudy75z/rem-money`). Anything outside `v2/` on the Desktop (the old root HTML files, `rebuild/`, root `docs/`) is **legacy** and not part of the repo or the deployment.
+- **What:** single-user, offline-first PWA. "How much can I spend today and still make payday?" — a self-correcting daily limit over a pay cycle (25th → 24th).
+- **Repo:** `xCloudy75z/rem-money`. **This `v2/` folder IS the repo.** Anything on the Desktop outside `v2/` is legacy.
+- **Live:** https://xcloudy75z.github.io/rem-money/ — deploys automatically on push to `main` (GitHub Actions → Pages).
+- **State:** **334 tests green**, lint clean, build ~200 KB. Vanilla JS, IIFE modules, no framework, no deps.
+- **Read next:** `docs/PROJECT-OVERVIEW.md` (architecture), `docs/PROJECT-STATUS.md` (state + locked decisions), `docs/CHANGELOG.md` (history), `docs/owner/HOWTO.md` (user-facing), and the memory files (auto-loaded).
 
-Read first:
-- `docs/PROJECT-OVERVIEW.md` — architecture map
-- `docs/PROJECT-STATUS.md` — current state, what's done, what's next
-- `docs/DEPLOYMENT.md` — how deploys work (`git push` → CI → Pages)
-- `docs/CHANGELOG.md` — what changed and when
-- `docs/owner/HOWTO.md` — how the user uses the app
+## 2. Current state
 
-## How to ship a change
+**Live & shipped:** rolling daily limit + pace; History; **Credit** tab (on-credit liabilities); **Wife reimbursement** ("Wife owes you"); **Per-category budgets + Plan tab** (monthly/yearly toggle, progress bars, unallocated readout); **Refresh app** button (Settings → App); sheet **X-button** fix; and **Import spends from card SMS** (Settings → Backup → 📩 Add spends from messages).
 
-```
-cd "C:\Users\games\Desktop\Spending Tracker\v2"
-npm test                   # all 156 tests must pass (CI runs this too)
-npm run lint:pure          # pure modules must stay clean (CI runs this too)
-git push                   # CI (.github/workflows/deploy.yml) tests, lints,
-                           # builds, and deploys dist/ to GitHub Pages.
-#   Repo: https://github.com/xCloudy75z/rem-money (this v2/ folder IS the repo)
-#   Pages source = "GitHub Actions". Don't commit dist/ (gitignored; CI builds it).
-```
+**⏳ In-flight — awaiting user confirmation:** the SMS-import review sheet had a bad **iOS Safari** layout (native controls overlapping). Fixed on 2026-07-13 with a **stacked, iOS-safe row** (each control full-width on its own line: category / amount+date / note / Wife) — deployed to live (`9b079c6`). **The user will confirm on their iPhone in the next session via a screenshot.** If it's clean but feels too tall for a long batch, tighten the height (it was deliberately traded height-for-safety). If it's still broken, get a fresh screenshot before iterating.
 
-Running `npm test`/`lint:pure` locally is optional (CI is the gate) but faster to catch failures.
-Full pipeline, watching runs, and rollback: **`docs/DEPLOYMENT.md`**.
+**Throwaway to clean up:** repo `xCloudy75z/rem-money-preview` still exists (a disposable preview). Couldn't auto-delete (token lacks `delete_repo` scope). Harmless; delete from its GitHub page when convenient.
 
-Before any non-trivial change:
-1. Check **locked decisions** in `docs/PROJECT-STATUS.md` (the legacy `rebuild/07-product-specification.md` outside `v2/` has the original long-form spec, if it still exists)
-2. Write a failing test first if the change touches `calc.js`, `store.js`, `migrate.js`, `validate.js`, or `format.js`
-3. Run `npm run lint:pure` after editing any pure module
+## 3. Operating rules (these govern how to work — follow them)
 
-## Deployment status: ✅ live
+### Devices (also in `CLAUDE.md` + memory `device-setup-and-workflow`)
+| # | Device | Role |
+|---|--------|------|
+| 1 | **Local PC** | Dev: build, tests, git, deploys. |
+| 2 | **iPhone (Remote 1)** | **Production keeper** — the real app + data. Source of truth for backups. |
+| 3 | **College PC (Remote 2)** | Remote Claude session; **only GitHub Pages URLs reachable** (localhost blocked). |
+| 4 | **College phone / Android (Remote 3)** | **Testing only.** Throwaway data; the user **never exports a backup from it**. |
 
-Cutover is complete — v2 is deployed at https://xcloudy75z.github.io/rem-money/ and deploys
-automatically on push. The historical first-time Netlify cutover steps have been removed; the
-current model is documented in `docs/DEPLOYMENT.md`. Migrating data from the old single-file app
-still works via Settings → Backup → **Import backup** (the v0→v1 migration runs automatically).
+- **"iPhone Update" is a trigger phrase.** When the user says it, give the full step-by-step to apply/update on the **iPhone** (Settings → App → ↻ Refresh app; restore-from-JSON only if needed). That's where real changes land. **Don't push to `main` / go live without the user's OK** — merging deploys to their live iPhone app.
+- Testing happens on the **Android against a Pages URL**. Never tell a remote device to use localhost.
+- **Communicate jargon-free** (memory `jargon-free-explanations`): plain language to the user, technical detail in docs/commits.
 
-## Why some things are the way they are
+### Deploy & preview
+- `git push` to `main` → CI (test → lint → build → deploy `dist/` to Pages). `dist/` is gitignored (CI builds it). Confirm with the user before merging to `main`.
+- **Test-before-merge for remote devices** = a disposable **preview repo** `rem-money-preview` (Pages: main / root → https://xcloudy75z.github.io/rem-money-preview/). Push the built `dist/index.html` (+ sw.js, manifest, icons) there; separate origin ⇒ separate storage ⇒ real data untouched. (See memory `remote-delivery-constraints`, `verify-on-pages-not-local-dev`.)
 
-| Question | Answer |
-|---|---|
-| Why no React/Vue/build pipeline beyond an inliner? | Single user, single file deploy, want survivability on a phone in 5 years. Frameworks add risk surface for zero benefit at this scale. |
-| Why IIFE modules instead of ES modules? | Lets the inliner concat trivially without a bundler. `<script>` tags work everywhere, no module-loading complications. |
-| Why pure-module discipline so strict? | Two bug categories *disappear* — timezone bugs and "tests pass on Tuesday, fail on Wednesday." Worth the small ergonomic cost. |
-| Why is the bundle 109 KB > 80 KB target? | Comfort scope expansion; one user; gzipped it's ~25 KB. Optimise later if it ever matters. |
-| Why "today included in divisor"? | User explicitly chose this on 2026-05-30. Don't change without their say-so. |
-| Why a phone frame on desktop? | The 440px-centered column looks lost on a 1920px screen. The frame makes the design read as intentional rather than broken. |
+## 4. How we build (the methodology — the user expects ALL of this)
 
-## Pitfalls to avoid
+The full pipeline, per feature:
 
-- **Don't add `new Date()` to a pure module.** `lint:pure` will fail. If you genuinely need time in a pure module, pass it as an argument.
-- **Don't mutate state in place.** All Store mutators clone first. If you skip cloning, two views can become inconsistent.
-- **Don't change the storage key without writing a migration.** It's `spending-tracker:v1`. New shape → bump `schemaVersion` inside, add a v1→v2 step in `migrate.js`.
-- **Don't trust `prompt()` UX in Settings.** It's a placeholder. The plan has a `ReassignSheet` pattern that should be applied to budget edit and category rename in V2 polish.
-- **Don't `console.log` in production code.** The lint script doesn't catch this yet.
+1. **Brainstorm** (`superpowers:brainstorming`) — clarify one question at a time; use the visual companion / `mcp__visualize__show_widget` for layout questions; get design approval.
+2. **Write the spec** → **ATTACK THE SPEC.** Run an adversarial multi-agent `Workflow`: N critics find holes, each finding independently verified, synthesized into fixes. Apply fixes.
+3. **Write the plan** (`superpowers:writing-plans`) → **ATTACK THE PLAN.** Same adversarial workflow, this time tracing the plan's actual code against the repo.
+4. **Build** (`superpowers:subagent-driven-development`) — one fresh subagent per plan task, strict TDD, frequent commits.
+5. **ATTACK THE BUILD.** Adversarial multi-agent review over the final diff (correctness + invariants + regressions), each finding verified. Fix confirmed issues.
+6. **For UI: ATTACK THE UI.** A multi-agent UI/UX/layout attack (density, tap targets, hierarchy/state, flow, a11y/theme) → merged redesign → implement → verify.
+7. **Verify in a real browser** (Pages deploy — see §5), then ship.
 
-## V2 priorities (in user-pain order)
+**Rule the user is emphatic about: spec, plan, AND app code are each independently stress-tested "to break" before proceeding.** Don't skip a break stage. Scale the number of critics to the feature size.
 
-1. **Replace `prompt()` in SettingsSheet** with proper in-sheet inputs for budget edit, salary day edit, category name/icon/color edit.
-2. **Per-category soft budgets** — schema-additive (`budget?` on category), non-blocking chips.
-3. **Arabic UI** — fill `STRINGS.ar` table, ship language toggle in Settings, set `dir="rtl"` on `<html>`.
-4. **Backup reminder banner** — non-intrusive nudge every 30 days.
-5. **Trend chip** — week-over-week category change (uses existing data, just `calc.js` addition).
+Engineering invariants: pure modules (`calc/store/validate/migrate/seed/format/smsParse`) never use `new Date`/`Math.random`/`crypto` (enforced by `npm run lint:pure`); Store mutators clone (immutable); schema changes are **additive, no `schemaVersion` bump**, back-filled by `migrate.js` (old JSON backups must still load); storage key `spending-tracker:v1`.
 
-Each of the above is a feature, not a rewrite. The schema and architecture already accommodate them.
+## 5. Debugging playbook — issues we hit and the RIGHT fix (avoid the 100-iteration trap)
 
-## If the user reports a bug
+| Symptom | Root cause | Correct fix (do this immediately) |
+|---|---|---|
+| Local dev server serves **stale** JS/CSS after edits (even `cache:'no-store'` fetch) | `npm run dev` / preview MCP process caches files | **Don't trust local-dev for verification.** Verify on the **Pages deploy** (push to preview repo, wait `status:built`, navigate there, clear SW+caches, measure). |
+| Browser **screenshots time out** in this environment | Renderer quirk | Use `mcp__Claude_Browser__javascript_tool` with `getBoundingClientRect()` / `getComputedStyle` for measurements. For the *user's* visual confirmation, ask them for a screenshot. |
+| A CSS class toggled by JS **flips on instead of off** ("wall of red") | `el.classList.toggle('x', force)` with `force === undefined` **flips** (treats undefined as "no arg") | Coerce the force arg to boolean: `toggle('x', !!expr)`. Any boolean from `&&`/`||` chains can be `undefined`. |
+| An element with the `hidden` attribute **still shows** | A class like `.chip { display: inline-flex }` overrides the UA `[hidden]{display:none}` | Hide via `el.style.display = 'none'` (or `!important`), not the `hidden` attribute. |
+| **iOS Safari** layout overlaps though Chromium looks fine | Native `<select>`/`<input type=date/number>` have large intrinsic sizes and don't shrink in tight flex rows | **Stack controls** (one per line or a simple 2-col grid), give every control `width:100%; box-sizing:border-box`; don't cram multiple native controls on one flex line. **You cannot fully test iOS locally — get a user screenshot to confirm.** |
+| Stale rendering after a deploy | Service worker + Cache Storage | Clear both before verifying: `caches.keys()→delete`, `serviceWorker.getRegistrations()→unregister`, then hard reload. (This is exactly what the in-app **Refresh app** button does for the user.) |
+| `git` via **PowerShell** reports exit 1 but the command worked | PS wraps git's stderr as an error record | Look at the actual output lines (e.g. `-> main`); it usually succeeded. |
+| Multi-line **commit messages** break / add a BOM | PS `-m` quoting + UTF-8 BOM | Write the message to a temp file with `[System.IO.File]::WriteAllText($f,$msg)` and `git commit -F $f`. |
+| Deleting a repo via `gh` → 403 | Token lacks `delete_repo` scope | Can't delete programmatically; tell the user to delete from the repo's GitHub page, or `gh auth refresh -s delete_repo`. |
+| Workflow agents die mid-run ("session limit … resets 1am Asia/Dubai") | Rate/usage limit | Re-run with `Workflow({scriptPath, resumeFromRunId})` after reset — cached agents replay instantly; only failed ones re-run. |
 
-1. Have them export their JSON backup first (always)
-2. Ask them to take a screenshot of what they see
-3. Ask them which step exactly broke it
-4. Reproduce by importing their JSON into your local dev server
-5. Write a failing test for the bug before fixing it
+## 6. Repo / branch state
+
+- `main` is current and deployed (HEAD ~ `9b079c6`, "iOS-safe stacked row layout").
+- All feature branches this session were merged (`--no-ff`) and deleted. No open branches.
+- `dist/` is gitignored; never commit it.
+
+## 7. Architecture (one line each; full map in `PROJECT-OVERVIEW.md`)
+
+`app.js` orchestrates (only module allowed `new Date`/uuid); pure `calc/store/validate/migrate/seed/format/smsParse`; `i18n` (en + ar); views `home/history/pastCycle/plan/liabilities/landing`; components `sheet/toast/confirmDialog/entrySheet/editSheet/settingsSheet/categorySheet/reassignSheet/recordPaymentSheet/importSmsSheet/…`; `scripts/build.js` inlines everything into `dist/index.html`.
+
+## 8. Open items / candidate next work
+
+- Confirm the iOS SMS-import layout (screenshot) → tighten height if needed.
+- Delete the `rem-money-preview` throwaway repo.
+- Deferred: Arabic UI (STRINGS.ar is stubbed, RTL-ready), trend/sparkline charts, transaction search, keyboard shortcuts, per-category soft-budget alerts.
+- Infra: CI still forces Node 24 over deprecated Node 20 actions (non-blocking warning).
+
+## 9. Starter prompt for the NEXT session (user will paste this)
+
+> You are continuing work on the "Spending Tracker 2.0" PWA (`C:\Users\games\Desktop\Spending Tracker\v2`).
+> **First, read `docs/HANDOVER.md` in full, then `docs/PROJECT-OVERVIEW.md`, `docs/PROJECT-STATUS.md`, and `CLAUDE.md`, and load your memory.** These define the project, the device setup, the "iPhone Update" trigger, the deploy/preview rules, the build methodology (spec → break, plan → break, build → break, plus a UI attack — all three artifacts adversarially stress-tested), and a debugging playbook of issues already solved (stale dev server → verify on Pages; iOS native-control overlap → stacked full-width layout; `classList.toggle(undefined)` flips → coerce with `!!`; etc.). Follow all of it.
+> **Immediate context:** an iOS-safe redesign of the SMS-import sheet is live and I (the user, on iPhone) am about to send a screenshot to confirm it looks right. Wait for it before assuming the SMS feature is done.
+> **Before starting any real work, if anything in the handover is unclear or underspecified, prepare a concise numbered list of questions for me to relay to the previous session** — don't guess on anything that could be answered. Otherwise, confirm you've read everything and ask what I want to build next.

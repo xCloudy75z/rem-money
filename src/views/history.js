@@ -99,8 +99,10 @@ var HistoryView = (function () {
                     : Format.fmtDateLong(d);
           var dayTotal = groups[d].reduce(function (s, t) { return s + _signed(t); }, 0);
           var rows = groups[d].map(function (t) { return _txnRow(t, state); }).join('');
-          return '<div class="section-h">' + label + '<span class="right">' + groups[d].length + ' · ' + Format.fmtMoney(dayTotal, state.settings.currency) + '</span></div>'
-            + '<ul class="txn-list">' + rows + '</ul>';
+          return '<div class="card-list">'
+            + '<div class="section-h">' + label + '<span class="right">' + groups[d].length + ' · ' + Format.fmtMoney(dayTotal, state.settings.currency) + '</span></div>'
+            + '<ul class="txn-list">' + rows + '</ul>'
+            + '</div>';
         }).join('');
 
     return ''

@@ -62,7 +62,7 @@ var LiabilitiesView = (function () {
         + (expanded ? I18n.t('credit_show_less') : I18n.t('credit_show_all', { n: total }))
         + '</button>';
     }
-    return '<div class="credit-card">'
+    return '<div class="card-list">'
       + (header || '')
       + '<ul class="txn-list">' + visible.join('') + '</ul>'
       + footer

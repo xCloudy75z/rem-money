@@ -44,8 +44,8 @@ var HomeView = (function () {
       .sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
 
     var todayList = todaysTxns.length
-      ? todaysTxns.map(function (t) { return _txnRow(t, state); }).join('')
-      : '<li><div class="empty-state"><div class="e-emoji">🌱</div><div class="e-title">' + I18n.t('no_spends_today') + '</div></div></li>';
+      ? '<div class="card-list"><ul class="txn-list">' + todaysTxns.map(function (t) { return _txnRow(t, state); }).join('') + '</ul></div>'
+      : '<div class="empty-state"><div class="e-emoji">🌱</div><div class="e-title">' + I18n.t('no_spends_today') + '</div></div>';
 
     var daysLabel = daysLeft === 1 ? I18n.t('day_left') : I18n.t('days_left', { n: daysLeft });
 
@@ -67,7 +67,7 @@ var HomeView = (function () {
       +     '</div>'
       +   '</div>'
       +   '<div class="section-h">' + I18n.t('today_label') + '</div>'
-      +   '<ul class="txn-list">' + todayList + '</ul>'
+      +   todayList
       + '</div>';
   }
 

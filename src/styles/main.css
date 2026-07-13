@@ -214,17 +214,19 @@ input { font: inherit; }
 .pace-legend .pl-sw.line { background: var(--accent); }
 .pace-legend .pl-sw.dash { background: linear-gradient(90deg, var(--muted) 0 5px, transparent 5px 9px); background-size: 9px 3px; }
 
-/* ---- Category donut (Plan) ---- */
-.donut-wrap { display: flex; align-items: center; gap: 14px; }
+/* ---- Category donut (Plan): donut on top, legend full-width below so the
+   category names have room to show in full instead of truncating. ---- */
+.donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .donut { flex: none; }
 .donut .donut-c-amt { fill: var(--text); font-size: 15px; font-weight: 800; text-anchor: middle; }
 .donut .donut-c-sub { fill: var(--muted); font-size: 9px; text-anchor: middle; }
-.donut-legend { flex: 1; min-width: 0; }
-.donut-legend .dl-row { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-size: 13px; }
-.donut-legend .dl-row .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.donut-legend { width: 100%; }
+.donut-legend .dl-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; font-size: 13.5px; border-top: 1px solid var(--border); }
+.donut-legend .dl-row:first-child { border-top: none; }
+.donut-legend .dl-row .sw { width: 11px; height: 11px; border-radius: 3px; flex: none; }
 .donut-legend .dl-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .donut-legend .dl-amt { font-weight: 700; font-variant-numeric: tabular-nums; }
-.donut-legend .dl-pct { color: var(--muted); font-size: 12px; width: 38px; text-align: end; }
+.donut-legend .dl-pct { color: var(--muted); font-size: 12px; width: 42px; text-align: end; }
 
 /* ============ TOAST ============ */
 #toast-root { position: fixed; left: 0; right: 0; bottom: calc(150px + env(safe-area-inset-bottom)); z-index: 200; pointer-events: none; }
